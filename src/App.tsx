@@ -1,26 +1,25 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import {ChangeEvent} from 'react';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    function handleChange(e: any) {
+        e.preventDefault();
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            let text = e.target?.result as string;
+            text = text.replaceAll('\r\n', '\n');
+            let textArr = text.split('\n');
+
+            console.log(textArr);
+        };
+        reader.readAsText(e.target.files[0]);
+
+    }
+
+    return (
+        <div className="App">
+            <input type="file" onChange={handleChange} />
+        </div>
+    );
 }
 
 export default App;
