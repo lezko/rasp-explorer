@@ -1,5 +1,3 @@
-import {ChangeEvent} from 'react';
-
 function App() {
     function handleChange(e: any) {
         e.preventDefault();
@@ -9,10 +7,9 @@ function App() {
             text = text.replaceAll('\r\n', '\n');
             let textArr = text.split('\n');
 
-            console.log(textArr);
+            console.table(textArr);
         };
         reader.readAsText(e.target.files[0]);
-
     }
 
     return (
