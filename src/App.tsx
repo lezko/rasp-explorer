@@ -1,15 +1,16 @@
+import * as XLSX from 'xlsx';
+
 function App() {
     function handleChange(e: any) {
         e.preventDefault();
         const reader = new FileReader();
-        reader.onload = async (e) => {
-            let text = e.target?.result as string;
-            text = text.replaceAll('\r\n', '\n');
-            let textArr = text.split('\n');
-
-            console.table(textArr);
+        const f = e.target.files[0];
+        reader.onload = async (e: any) => {
+            const bstr = e.target.result;
+            const wb = XLSX.read(bstr, {type: 'binary'});
+            console.log(wb);
         };
-        reader.readAsText(e.target.files[0]);
+        reader.readAsBinaryString(f);
     }
 
     return (

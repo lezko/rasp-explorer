@@ -24,3 +24,5 @@ yarn-error.log*
 
 *.iml
 .idea
+/test.js
+/РасписаниеФКН_ осенний семестр 2023-2024.xlsx
