@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import {parseWorkbook} from 'core/ScheduleParser';
 
 function App() {
     function handleChange(e: any) {
@@ -8,7 +9,10 @@ function App() {
         reader.onload = async (e: any) => {
             const bstr = e.target.result;
             const wb = XLSX.read(bstr, {type: 'binary'});
-            console.log(wb);
+            const table = XLSX.utils.sheet_to_csv(wb.Sheets['Расписание (бак., спец.)']);
+            parseWorkbook(wb);
+            // console.log(table.split('\n'));
+            // console.log(wb);
         };
         reader.readAsBinaryString(f);
     }
