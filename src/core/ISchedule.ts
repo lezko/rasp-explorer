@@ -1,11 +1,12 @@
-export enum DayName {
-    Monday = 'Monday',
-    Tuesday = 'Tuesday',
-    Wednesday = 'Wednesday',
-    Thursday = 'Thursday',
-    Friday = 'Friday',
-    Saturday = 'Saturday'
-}
+// todo maybe should've used enum
+export const DayName = [
+    'Понедельник',
+    'Вторник',
+    'Среда',
+    'Четверг',
+    'Пятница',
+    'Суббота'
+];
 
 export const dayCount = 6;
 export const lessonCount = 8;

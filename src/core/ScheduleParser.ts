@@ -1,10 +1,12 @@
 import * as XLSX from 'xlsx';
 import {IStudyGroup} from 'core/IStudyGroup';
 import {dayCount, ILesson, IWeek, lessonCount, lessonScheduleTime} from 'core/ISchedule';
+import config from 'config.json';
 
-type ParsingResult = {[key: string]: IStudyGroup[]};
+type ParsingResult = { [key: string]: IStudyGroup[] };
+
 export function parseWorkbook(wb: XLSX.WorkBook): ParsingResult {
-    const result: ParsingResult = {}
+    const result: ParsingResult = {};
     for (const [sheetName, sheet] of Object.entries(wb.Sheets)) {
         try {
             result[sheetName] = parseSheet(sheet);
@@ -19,6 +21,7 @@ export function parseWorkbook(wb: XLSX.WorkBook): ParsingResult {
 
 // todo check keywords
 const keyWords = ['понедельник', 'вторник', 'группа', 'курс', 'направление'];
+
 function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
     let table = XLSX.utils.sheet_to_json(sheet, {header: 1}) as string[][];
     const merges = sheet['!merges'];
@@ -34,7 +37,7 @@ function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
     table = removeEmptyRows(table);
 
     const groups: IStudyGroup[] = [];
-    const rowStartIdx = 4
+    const rowStartIdx = 4;
     const colStartIdx = 2;
     const yearIdx = 0;
     const groupIdx = 1;
@@ -82,7 +85,7 @@ function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
         group.schedule = {
             firstWeek: week1,
             secondWeek: week2
-        }
+        };
         groups.push(group);
     }
 
@@ -128,7 +131,7 @@ function fillRange(table: string[][], r: XLSX.Range) {
         for (let col = r.s.c; col <= r.e.c; col++) {
             if (table[row][col]) {
                 value = table[row][col];
-                break
+                break;
             }
         }
         if (value) {
@@ -151,7 +154,7 @@ function removeEmptyRows(table: string[][]): string[][] {
         for (let c = 0; c < table[0].length; c++) {
             if (table[r][c]) {
                 hasNonEmptyItems = true;
-                break
+                break;
             }
         }
         if (hasNonEmptyItems) {
@@ -194,4 +197,17 @@ function extractNumberFromStr(str: string) {
         throw new Error(`Failed to extract number from string '${str}'`);
     }
     return +matches[0];
+}
+
+export function getCurrentWeekNumber() {
+    const start = new Date(config.weekNumber.date);
+    const now = new Date();
+    const weeksPassed = Math.floor((now.getTime() - start.getTime()) / 1000 / 60 / 60 / 24 / 7);
+    let weekNumber;
+    if (weeksPassed % 2 === 0) {
+        weekNumber = config.weekNumber.number;
+    } else {
+        weekNumber = config.weekNumber.number === 1 ? 2 : 1;
+    }
+    return weekNumber;
 }
