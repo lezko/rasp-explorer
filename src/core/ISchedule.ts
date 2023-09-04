@@ -7,6 +7,9 @@ export enum DayName {
     Saturday = 'Saturday'
 }
 
+export const dayCount = 6;
+export const lessonCount = 8;
+
 // todo think about it :)
 export const lessonScheduleTime = [
     ['8:00', '9:35'],
@@ -19,7 +22,7 @@ export const lessonScheduleTime = [
     ['20:10', '21:30'],
 ];
 
-interface ILesson {
+export interface ILesson {
     // todo parse these fields
     // title: string;
     // teacher: string;
@@ -29,10 +32,10 @@ interface ILesson {
     time: typeof lessonScheduleTime[number];
 }
 
-type IDay = ILesson[];
+export type IDay = ILesson[];
 
 // should always contain 6 items
-type IWeek = IDay[];
+export type IWeek = IDay[];
 
 export interface ISchedule {
     firstWeek: IWeek;

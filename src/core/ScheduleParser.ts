@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import {IStudyGroup} from 'core/IStudyGroup';
+import {dayCount, ILesson, IWeek, lessonCount, lessonScheduleTime} from 'core/ISchedule';
 
 type ParsingResult = {[key: string]: IStudyGroup[]};
 export function parseWorkbook(wb: XLSX.WorkBook): ParsingResult {
@@ -9,6 +10,7 @@ export function parseWorkbook(wb: XLSX.WorkBook): ParsingResult {
             result[sheetName] = parseSheet(sheet);
         } catch (e: any) {
             // todo error handling
+            console.error(e.message);
         }
     }
 
@@ -16,21 +18,96 @@ export function parseWorkbook(wb: XLSX.WorkBook): ParsingResult {
 }
 
 // todo check keywords
-const keyWords = ['Понедельник', 'Вторник', 'Группа', 'Курс', 'Направление', 'Специальность', 'Профиль'];
+const keyWords = ['понедельник', 'вторник', 'группа', 'курс', 'направление'];
 function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
-    const table = XLSX.utils.sheet_to_json(sheet, {header: 1}) as string[][];
+    let table = XLSX.utils.sheet_to_json(sheet, {header: 1}) as string[][];
     const merges = sheet['!merges'];
     appendEmptyCells(table);
 
-    if (!merges) {
-        throw new Error('No merges found on this sheet. Invalid file format.');
+    if (!merges || !checkKeywords(table)) {
+        throw new Error('Invalid file format.');
     }
     for (const m of merges) {
         fillRange(table, m);
     }
+    table = removeEmptyColumns(table);
+    table = removeEmptyRows(table);
 
-    console.log(table);
-    return [];
+    const groups: IStudyGroup[] = [];
+    const rowStartIdx = 4
+    const colStartIdx = 2;
+    const yearIdx = 0;
+    const groupIdx = 1;
+    const specializationIdx = 2;
+    const additionalInfoIdx = 3;
+
+    for (let col = colStartIdx; col < table[0].length; col++) {
+        const group = {} as IStudyGroup;
+        try {
+            group.year = extractNumberFromStr(table[yearIdx][col]);
+            group.groupNumber = extractNumberFromStr(table[groupIdx][col]);
+        } catch (e: any) {
+            console.error(`Failed to proceed group with year ${table[yearIdx][col]} and group number ${table[groupIdx][col]}`);
+            continue;
+        }
+        group.specialization = table[specializationIdx][col];
+        group.additionalInfo = [table[additionalInfoIdx][col]];
+
+        const week1 = Array.from(Array(dayCount), () => []) as IWeek;
+        const week2 = Array.from(Array(dayCount), () => []) as IWeek;
+        let k = 0;
+        for (let row = rowStartIdx; row < table.length; row++) {
+            const lesson = {} as ILesson;
+            lesson.description = table[row][col];
+            if (lesson.description) {
+                lesson.time = lessonScheduleTime[Math.floor((k % (lessonCount * 2)) / 2)];
+                const week = k % 2 === 0 ? week1 : week2;
+                week[Math.floor(k / (lessonCount * 2))].push(lesson);
+            }
+            k++;
+        }
+
+        // set subgroup number
+        if (groups.length) {
+            const lastGroup = groups[groups.length - 1];
+            if (lastGroup.groupNumber === group.groupNumber) {
+                if (!lastGroup.subgroupNumber) {
+                    lastGroup.subgroupNumber = 1;
+                }
+                group.subgroupNumber = lastGroup.subgroupNumber + 1;
+            }
+        }
+
+
+        group.schedule = {
+            firstWeek: week1,
+            secondWeek: week2
+        }
+        groups.push(group);
+    }
+
+
+    console.log(groups);
+    // console.log(table);
+    return groups;
+}
+
+function checkKeywords(table: string[][]) {
+    const wordsSet = new Set();
+    for (const row of table) {
+        for (const item of row) {
+            if (!item) {
+                continue;
+            }
+            const str = String(item).toLowerCase();
+            for (const keyWord of keyWords) {
+                if (str.includes(keyWord) && !wordsSet.has(keyWord)) {
+                    wordsSet.add(keyWord);
+                }
+            }
+        }
+    }
+    return wordsSet.size === keyWords.length;
 }
 
 function appendEmptyCells(table: string[][]) {
@@ -65,4 +142,56 @@ function fillRange(table: string[][], r: XLSX.Range) {
             }
         }
     }
+}
+
+function removeEmptyRows(table: string[][]): string[][] {
+    const result = [];
+    for (let r = 0; r < table.length; r++) {
+        let hasNonEmptyItems = false;
+        for (let c = 0; c < table[0].length; c++) {
+            if (table[r][c]) {
+                hasNonEmptyItems = true;
+                break
+            }
+        }
+        if (hasNonEmptyItems) {
+            result.push(table[r]);
+        }
+    }
+    return result;
+}
+
+function removeEmptyColumns(table: string[][]): string[][] {
+    const emptyIndexes = [];
+    for (let c = 0; c < table[0].length; c++) {
+        let hasNonEmptyValues = false;
+        for (let r = 0; r < table.length; r++) {
+            if (table[r][c]) {
+                hasNonEmptyValues = true;
+                break;
+            }
+        }
+        if (!hasNonEmptyValues) {
+            emptyIndexes.push(c);
+        }
+    }
+    const result = [];
+    for (let r = 0; r < table.length; r++) {
+        const newRow = [];
+        for (let c = 0; c < table[0].length; c++) {
+            if (!emptyIndexes.includes(c)) {
+                newRow.push(table[r][c]);
+            }
+        }
+        result.push(newRow);
+    }
+    return result;
+}
+
+function extractNumberFromStr(str: string) {
+    const matches = str.match(/(\d+)/);
+    if (!matches) {
+        throw new Error(`Failed to extract number from string '${str}'`);
+    }
+    return +matches[0];
 }
