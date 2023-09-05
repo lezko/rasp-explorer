@@ -82,7 +82,7 @@ function App() {
                     }
                 </div>
                 {lastUrl && <button style={{marginBottom: 30}} onClick={() => {
-                    navigator.clipboard.writeText('http://localhost:3000?url=' + lastUrl);
+                    navigator.clipboard.writeText(`${config.baseUrl}?url=${lastUrl}`);
                 }}>Скопировать публичную ссылку</button>}
                 <br/>
 
