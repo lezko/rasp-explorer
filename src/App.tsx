@@ -52,7 +52,7 @@ function App() {
     }
 
     const [urlString, setUrlString] = useState('');
-    const [gspIdString, setGspIdString] = useState('');
+    const [gshIdString, setGshIdString] = useState('');
 
     return (
         <div className="app">
@@ -76,8 +76,8 @@ function App() {
                             </div>
                             :
                             <div>
-                                <input type="text" value={gspIdString} onChange={e => setGspIdString(e.target.value)} />
-                                <button style={{marginLeft: 5}} onClick={() => getFileByUrl(getSpreadSheetUrl(gspIdString))}>OK</button>
+                                <input type="text" value={gshIdString} onChange={e => setGshIdString(e.target.value)} />
+                                <button style={{marginLeft: 5}} onClick={() => getFileByUrl(getSpreadSheetUrl(gshIdString))}>OK</button>
                             </div>
                     }
                 </div>
