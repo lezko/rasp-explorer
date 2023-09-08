@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import {parseWorkbook} from 'core/ScheduleParser';
+import {getCurrentWeekNumber, parseWorkbook} from 'core/ScheduleParser';
 import {ChangeEvent, useEffect, useState} from 'react';
 import Schedule from 'components/Schedule';
 import {getSpreadSheetUrl} from 'core/SpreadSheetUrl';
