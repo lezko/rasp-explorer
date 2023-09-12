@@ -3,7 +3,7 @@ import {IStudyGroup} from 'core/IStudyGroup';
 import {dayCount, ILesson, IWeek, lessonCount, lessonScheduleTime} from 'core/ISchedule';
 import config from 'config.json';
 
-type ParsingResult = { [key: string]: IStudyGroup[] };
+export type ParsingResult = { [key: string]: IStudyGroup[] };
 
 export function parseWorkbook(wb: XLSX.WorkBook): ParsingResult {
     const result: ParsingResult = {};

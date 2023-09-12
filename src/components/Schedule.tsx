@@ -1,25 +1,25 @@
 import {IStudyGroup} from 'core/IStudyGroup';
-import {FC, useState} from 'react';
+import {useState} from 'react';
 import styles from 'scss/components/Schedule.module.scss';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
 import {scheduleParamsToUrl, setScheduleParams, useScheduleParams} from 'store/scheduleParamsSlice';
 import {useAppDispatch} from 'store';
+import {removeStudyGroupFromLocalStorage, saveStudyGroupToLocalStorage} from 'utils/scheduleUtils';
+import {useSchedule} from 'store/scheduleSlice';
 
-interface ScheduleProps {
-    groups: IStudyGroup[];
-}
-
-const Schedule: FC<ScheduleProps> = ({groups}) => {
+const Schedule = () => {
     const params = useScheduleParams();
+    const {studyGroups, loading, error} = useSchedule();
 
+    const groups = params.sheetName ? studyGroups[params.sheetName] : [];
     // todo memo optimization
     const dispatch = useAppDispatch();
     const {year, groupNumber, subgroupNumber} = useScheduleParams();
     const currentWeekNumber = getCurrentWeekNumber();
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
 
-    const years = Array.from(groups.reduce((s, g) => {
+    const years = Array.from(groups.reduce((s: any, g: any) => {
         if (!s.has(g.year)) {
             s.add(g.year);
         }
@@ -51,6 +51,7 @@ const Schedule: FC<ScheduleProps> = ({groups}) => {
     function getGroup(year: number, groupNumber: number, subgroupNumber?: number): IStudyGroup {
         for (const group of groups) {
             if (group.year === year && group.groupNumber === groupNumber && (!subgroupNumber || group.subgroupNumber === subgroupNumber)) {
+                saveStudyGroupToLocalStorage(group);
                 return group;
             }
         }
@@ -75,6 +76,7 @@ const Schedule: FC<ScheduleProps> = ({groups}) => {
                     groupNumber: undefined,
                     subgroupNumber: undefined
                 }));
+                removeStudyGroupFromLocalStorage();
             }}>
                 <option value=""></option>
                 {years.map(y =>
@@ -88,7 +90,8 @@ const Schedule: FC<ScheduleProps> = ({groups}) => {
                 dispatch(setScheduleParams({
                     groupNumber: +e.target.value || undefined,
                     subgroupNumber: undefined,
-                }))
+                }));
+                removeStudyGroupFromLocalStorage();
             }}>
                 <option value=""></option>
                 {year && getGroupNumbers(year).map((gn, i) =>
@@ -123,7 +126,7 @@ const Schedule: FC<ScheduleProps> = ({groups}) => {
 
                     {params.url && year && groupNumber && (!getSubgroupNumbers(year, groupNumber).length || subgroupNumber) &&
                         <button style={{marginBlock: 10}} onClick={() => {
-                            navigator.clipboard.writeText(window.location.origin + scheduleParamsToUrl(params));
+                            navigator.clipboard.writeText(window.location.origin + window.location.pathname + scheduleParamsToUrl(params));
                         }}>Скопировать ссылку на текущее расписание</button>}
 
                     <Week week={weekNumber === 1 ? getGroup(year, groupNumber, subgroupNumber).schedule.firstWeek :

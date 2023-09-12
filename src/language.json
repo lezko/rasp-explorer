@@ -1,0 +1,9 @@
+{
+  "ru": {
+    "fileSelect": {
+      "local": "Локальный файл",
+      "url": "Ссылка",
+      "gssID": "Google Spreadsheet ID"
+    }
+  }
+}
