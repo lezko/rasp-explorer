@@ -3,25 +3,19 @@ import {FC, useState} from 'react';
 import styles from 'scss/components/Schedule.module.scss';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
-import config from 'config.json';
+import {scheduleParamsToUrl, setScheduleParams, useScheduleParams} from 'store/scheduleParamsSlice';
+import {useAppDispatch} from 'store';
 
 interface ScheduleProps {
     groups: IStudyGroup[];
-    searchParams: URLSearchParams;
 }
 
-const Schedule: FC<ScheduleProps> = ({groups, searchParams}) => {
-    let p: any = {};
-    if (searchParams.has('url')) {
-        p.year = Number(searchParams.get('year')) || undefined;
-        p.groupNumber = Number(searchParams.get('groupNumber')) || undefined;
-        p.subgroupNumber = Number(searchParams.get('subgroupNumber')) || undefined;
-    }
+const Schedule: FC<ScheduleProps> = ({groups}) => {
+    const params = useScheduleParams();
 
     // todo memo optimization
-    const [year, setYear] = useState<number | undefined>(p.year);
-    const [groupNumber, setGroupNumber] = useState<number | undefined>(year ? p.groupNumber : undefined);
-    const [subgroupNumber, setSubgroupNumber] = useState<number | undefined>((year && groupNumber) ? p.subgroupNumber : undefined);
+    const dispatch = useAppDispatch();
+    const {year, groupNumber, subgroupNumber} = useScheduleParams();
     const currentWeekNumber = getCurrentWeekNumber();
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
 
@@ -76,38 +70,42 @@ const Schedule: FC<ScheduleProps> = ({groups, searchParams}) => {
         <div className={styles.schedule}>
             <span>Курс:</span>
             <select value={String(year) || ''} onChange={e => {
-                setGroupNumber(undefined);
-                setSubgroupNumber(undefined);
-                setYear(+e.target.value || undefined);
+                dispatch(setScheduleParams({
+                    year: +e.target.value || undefined,
+                    groupNumber: undefined,
+                    subgroupNumber: undefined
+                }));
             }}>
                 <option value=""></option>
                 {years.map(y =>
                     <option key={y} value={String(y)}>{y}</option>
                 )}
             </select>
-            <br/>
+            <br />
 
             <span>Группа:</span>
             <select value={String(groupNumber) || ''} onChange={e => {
-                setSubgroupNumber(undefined);
-                setGroupNumber(+e.target.value || undefined);
+                dispatch(setScheduleParams({
+                    groupNumber: +e.target.value || undefined,
+                    subgroupNumber: undefined,
+                }))
             }}>
                 <option value=""></option>
                 {year && getGroupNumbers(year).map((gn, i) =>
                     <option key={i} value={gn}>{gn}</option>
                 )}
             </select>
-            <br/>
+            <br />
 
             <span>Подгруппа:</span>
             <select value={String(subgroupNumber) || ''}
-                    onChange={e => setSubgroupNumber(+e.target.value || undefined)}>
+                    onChange={e => dispatch(setScheduleParams({subgroupNumber: +e.target.value || undefined}))}>
                 <option value=""></option>
                 {year && groupNumber && getSubgroupNumbers(year, groupNumber).map((sgn, i) =>
                     <option key={i} value={sgn}>{sgn}</option>
                 )}
             </select>
-            <br/>
+            <br />
 
             {year && groupNumber && (!getSubgroupNumbers(year, groupNumber).length || subgroupNumber) &&
                 <div style={{marginTop: 20}}>
@@ -118,15 +116,15 @@ const Schedule: FC<ScheduleProps> = ({groups, searchParams}) => {
                         value={String(weekNumber)}
                         onChange={e => setWeekNumber(+e.target.value)}
                     >
-                        <option value="1">1 {currentWeekNumber === 1 ? '(текущая)': ''}</option>
-                        <option value="2">2 {currentWeekNumber === 2 ? '(текущая)': ''}</option>
+                        <option value="1">1 {currentWeekNumber === 1 ? '(текущая)' : ''}</option>
+                        <option value="2">2 {currentWeekNumber === 2 ? '(текущая)' : ''}</option>
                     </select>
-                    <br/>
+                    <br />
 
-                    {searchParams.has('url') && year && groupNumber && (!getSubgroupNumbers(year, groupNumber).length || subgroupNumber) && <button style={{marginBlock: 10}} onClick={() => {
-                        const params = `&year=${year}&groupNumber=${groupNumber}&subgroupNumber=${subgroupNumber}`;
-                        navigator.clipboard.writeText(config.baseUrl + '?url=' + searchParams.get('url') + params);
-                    }}>Скопировать ссылку на текущее расписание</button>}
+                    {params.url && year && groupNumber && (!getSubgroupNumbers(year, groupNumber).length || subgroupNumber) &&
+                        <button style={{marginBlock: 10}} onClick={() => {
+                            navigator.clipboard.writeText(window.location.origin + scheduleParamsToUrl(params));
+                        }}>Скопировать ссылку на текущее расписание</button>}
 
                     <Week week={weekNumber === 1 ? getGroup(year, groupNumber, subgroupNumber).schedule.firstWeek :
                         getGroup(year, groupNumber, subgroupNumber).schedule.secondWeek

@@ -1,9 +1,15 @@
 import * as XLSX from 'xlsx';
-import {getCurrentWeekNumber, parseWorkbook} from 'core/ScheduleParser';
+import {parseWorkbook} from 'core/ScheduleParser';
 import {ChangeEvent, useEffect, useState} from 'react';
 import Schedule from 'components/Schedule';
 import {getSpreadSheetUrl} from 'core/SpreadSheetUrl';
-import config from 'config.json';
+import {useAppDispatch} from 'store';
+import {
+    parseScheduleParams, ScheduleParamsState,
+    setScheduleParams,
+    setScheduleParamsFromString,
+    useScheduleParams
+} from 'store/scheduleParamsSlice';
 
 function App() {
     const [fileAccessType, setFileAccessType] = useState<'local' | 'url' | 'id'>('local');
@@ -11,22 +17,36 @@ function App() {
     const [selectedSchedule, setSelectedSchedule] = useState('');
     const [lastUrl, setLastUrl] = useState('');
 
-    const params = new URLSearchParams(window.location.search);
+    // origin
+    const dispatch = useAppDispatch();
+    const params = useScheduleParams();
     useEffect(() => {
-        const paramUrl = params.get('url');
-        if (paramUrl && !schedules) {
-            getFileByUrl(paramUrl);
-            setFileAccessType('url');
-            setUrlString(paramUrl);
+        const searchString = window.location.search;
+        if (searchString) {
+            const urlParams = parseScheduleParams(searchString);
+            dispatch(setScheduleParams(urlParams));
+            if (urlParams.sheetName) {
+                setSelectedSchedule(urlParams.sheetName);
+            }
+            if (urlParams.url) {
+                getFileByUrl(urlParams.url);
+                setFileAccessType('url');
+                setUrlString(urlParams.url);
+            }
+            window.history.replaceState(null, document.title, window.location.origin);
         }
-    }, [schedules]);
+    }, []);
 
     function getFileByUrl(url: string) {
         fetch(url).then(res => res.arrayBuffer()).then(data => {
             const wb = XLSX.read(data, {type: 'binary'});
             const schedules = parseWorkbook(wb);
             setSchedules(schedules);
-            setSelectedSchedule(Object.keys(schedules)[0]);
+            if (!params.sheetName) {
+                const sheetName = Object.keys(schedules)[0];
+                setSelectedSchedule(sheetName);
+                dispatch(setScheduleParams({sheetName}));
+            }
             setLastUrl(url);
         });
     }
@@ -47,8 +67,17 @@ function App() {
     }
 
     function handleSelectedScheduleChange(e: ChangeEvent<HTMLSelectElement>) {
-        setSelectedSchedule(e.target.value);
-        window.history.replaceState(null, document.title, config.baseUrl);
+        const sheetName = e.target.value;
+        setSelectedSchedule(sheetName);
+        const nextParams = {
+            sheetName
+        } as ScheduleParamsState;
+        if (sheetName !== params.sheetName) {
+            nextParams.year = undefined;
+            nextParams.groupNumber = undefined;
+            nextParams.subgroupNumber = undefined;
+        }
+        dispatch(setScheduleParams(nextParams));
     }
 
     const [urlString, setUrlString] = useState('');
@@ -77,14 +106,16 @@ function App() {
                             :
                             <div>
                                 <input type="text" value={gshIdString} onChange={e => setGshIdString(e.target.value)} />
-                                <button style={{marginLeft: 5}} onClick={() => getFileByUrl(getSpreadSheetUrl(gshIdString))}>OK</button>
+                                <button style={{marginLeft: 5}}
+                                        onClick={() => getFileByUrl(getSpreadSheetUrl(gshIdString))}>OK
+                                </button>
                             </div>
                     }
                 </div>
                 {lastUrl && <button style={{marginBottom: 30}} onClick={() => {
-                    navigator.clipboard.writeText(`${config.baseUrl}?url=${lastUrl}`);
+                    navigator.clipboard.writeText(`${window.location.origin}?url=${lastUrl}`);
                 }}>Скопировать публичную ссылку</button>}
-                <br/>
+                <br />
 
                 {schedules &&
                     <select style={{marginBottom: 10}} onChange={handleSelectedScheduleChange} value={selectedSchedule}>
@@ -95,7 +126,7 @@ function App() {
                 }
 
                 {schedules && selectedSchedule &&
-                    <Schedule key={selectedSchedule} groups={schedules[selectedSchedule]} searchParams={params} />
+                    <Schedule key={selectedSchedule} groups={schedules[selectedSchedule]} />
                 }
             </div>
         </div>

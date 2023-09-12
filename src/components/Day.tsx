@@ -2,7 +2,6 @@ import {DayName, IDay, ILesson, lessonCount, lessonScheduleTime} from 'core/ISch
 import {FC} from 'react';
 import Lesson from 'components/Lesson';
 import styles from 'scss/components/Day.module.scss';
-import lesson from 'components/Lesson';
 
 interface DayProps {
     name: string;
