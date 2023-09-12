@@ -5,7 +5,8 @@ import styled from 'styled-components';
 import language from 'language.json';
 import {getSpreadSheetUrl} from 'core/SpreadSheetUrl';
 import {getSpreadSheetByUrl} from 'utils/fetchData';
-import {useScheduleParams} from 'store/scheduleParamsSlice';
+import {setScheduleParams, useScheduleParams} from 'store/scheduleParamsSlice';
+import {useAppDispatch} from 'store';
 
 // todo language setting
 const lang = language.ru.fileSelect;
@@ -42,6 +43,7 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
     const [urlString, setUrlString] = useState('');
     const [gssIDString, setGssIDString] = useState('');
 
+    const dispatch = useAppDispatch();
     const params = useScheduleParams();
 
     useEffect(() => {
@@ -49,7 +51,7 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
             setUrlString(params.url);
             setFileAccessType('url');
         }
-    }, [params])
+    }, [params]);
 
     function handleFileInputChange(e: any) {
         e.preventDefault();
@@ -87,6 +89,7 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
                             <input type="text" value={urlString} onChange={e => setUrlString(e.target.value)} />
                             <button style={{marginLeft: 5}} onClick={() => {
                                 getSpreadSheetByUrl(urlString).then(onFileLoaded);
+                                dispatch(setScheduleParams({url: urlString}));
                             }}>OK
                             </button>
                         </div> :
@@ -94,7 +97,9 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
                             <input type="text" value={gssIDString} onChange={e => setGssIDString(e.target.value)} />
                             <button style={{marginLeft: 5}}
                                     onClick={() => {
-                                        getSpreadSheetByUrl(getSpreadSheetUrl(gssIDString)).then(onFileLoaded);
+                                        const spreadSheetUrl = getSpreadSheetUrl(gssIDString);
+                                        getSpreadSheetByUrl(spreadSheetUrl).then(onFileLoaded);
+                                        dispatch(setScheduleParams({url: spreadSheetUrl}));
                                     }}>OK
                             </button>
                         </div>

@@ -22,13 +22,20 @@ function App() {
         if (searchString) {
             const urlParams = parseScheduleParams(searchString);
             dispatch(setScheduleParams(urlParams));
-            window.history.replaceState(null, document.title, window.location.origin);
+            window.history.replaceState(null, document.title, window.location.origin + window.location.pathname);
             finalParams = {...finalParams, ...urlParams};
         }
         if (finalParams.url) {
             dispatch(fetchSpreadSheet(finalParams.url));
         }
     }, []);
+
+    // fixme
+    useEffect(() => {
+        if (Object.keys(studyGroups).length && !params.sheetName) {
+            dispatch(setScheduleParams({sheetName: Object.keys(studyGroups)[0]}));
+        }
+    }, [studyGroups]);
 
     function handleSelectedScheduleChange(e: ChangeEvent<HTMLSelectElement>) {
         const sheetName = e.target.value;
@@ -52,14 +59,15 @@ function App() {
                 }} />
 
                 {studyGroups &&
-                    <select style={{marginBlock: 10}} onChange={handleSelectedScheduleChange} value={params.sheetName}>
+                    <select style={{marginBlock: 10}} onChange={handleSelectedScheduleChange}
+                            value={params.sheetName}>
                         {Object.keys(studyGroups).map(s =>
                             <option key={s} value={s}>{s}</option>
                         )}
                     </select>
                 }
 
-                {Object.keys(studyGroups).length > 0 && params.sheetName &&
+                {Object.keys(studyGroups).length > 0 &&
                     <Schedule key={params.sheetName} />
                 }
             </div>
