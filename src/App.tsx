@@ -52,6 +52,7 @@ function App() {
 
     return (
         <div className="app">
+            <center style={{marginBottom: 30}}>DEV</center>
             <div className="container">
                 <FileSelect onFileLoaded={schedules => {
                     dispatch(setSchedule(schedules));
