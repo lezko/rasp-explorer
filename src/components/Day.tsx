@@ -11,7 +11,7 @@ interface DayProps {
 const Day: FC<DayProps> = ({day, name}) => {
     const lessons = Array(lessonCount).fill(null);
     for (const lesson of day) {
-        lessons[lessonScheduleTime.indexOf(lesson.time)] = lesson;
+        lessons[lessonScheduleTime.findIndex(t => t[0] === lesson.time[0] && t[1] === lesson.time[1])] = lesson;
     }
     let stopIdx = -1;
     for (let i = 0; i < lessonCount; i++) {

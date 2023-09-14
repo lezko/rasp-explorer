@@ -1,12 +1,12 @@
 import {parseWorkbook} from 'core/ScheduleParser';
-import {FC, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import * as XLSX from 'xlsx';
 import styled from 'styled-components';
 import language from 'language.json';
 import {getSpreadSheetUrl} from 'core/SpreadSheetUrl';
-import {getSpreadSheetByUrl} from 'utils/fetchData';
-import {setScheduleParams, useScheduleParams} from 'store/scheduleParamsSlice';
 import {useAppDispatch} from 'store';
+import {fetchSpreadSheet} from 'store/scheduleActionCreators';
+import {setData, setParams, useSchedule} from 'store/scheduleSlice';
 
 // todo language setting
 const lang = language.ru.fileSelect;
@@ -34,17 +34,13 @@ const StyledFileSelect = styled.div`
   max-width: 450px;
 `;
 
-interface FileSelectProps {
-    onFileLoaded: (data: ReturnType<typeof parseWorkbook>) => void;
-}
-
-const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
+const FileSelect = () => {
     const [fileAccessType, setFileAccessType] = useState<'local' | 'url' | 'gssID'>('gssID');
     const [urlString, setUrlString] = useState('');
     const [gssIDString, setGssIDString] = useState('');
 
     const dispatch = useAppDispatch();
-    const params = useScheduleParams();
+    const {params} = useSchedule();
 
     useEffect(() => {
         if (params.url && !urlString) {
@@ -61,7 +57,7 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
             const bstr = e.target.result;
             const wb = XLSX.read(bstr, {type: 'binary'});
             const schedules = parseWorkbook(wb);
-            onFileLoaded(schedules);
+            dispatch(setData(schedules));
         };
         reader.readAsBinaryString(f);
     }
@@ -88,8 +84,8 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
                         <div>
                             <input type="text" value={urlString} onChange={e => setUrlString(e.target.value)} />
                             <button style={{marginLeft: 5}} onClick={() => {
-                                getSpreadSheetByUrl(urlString).then(onFileLoaded);
-                                dispatch(setScheduleParams({url: urlString}));
+                                dispatch(fetchSpreadSheet(urlString));
+                                dispatch(setParams({url: urlString}));
                             }}>OK
                             </button>
                         </div> :
@@ -98,13 +94,11 @@ const FileSelect: FC<FileSelectProps> = ({onFileLoaded}) => {
                             <button style={{marginLeft: 5}}
                                     onClick={() => {
                                         const spreadSheetUrl = getSpreadSheetUrl(gssIDString);
-                                        getSpreadSheetByUrl(spreadSheetUrl).then(onFileLoaded);
-                                        dispatch(setScheduleParams({url: spreadSheetUrl}));
+                                        dispatch(fetchSpreadSheet(spreadSheetUrl));
+                                        dispatch(setParams({url: spreadSheetUrl}));
                                     }}>OK
                             </button>
                         </div>
-
-
             }</StyledBody>
         </StyledFileSelect>
     );

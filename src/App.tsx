@@ -1,76 +1,84 @@
 import {ChangeEvent, useEffect} from 'react';
 import Schedule from 'components/Schedule';
 import {useAppDispatch} from 'store';
-import {
-    parseScheduleParams,
-    ScheduleParamsState,
-    setScheduleParams,
-    useScheduleParams
-} from 'store/scheduleParamsSlice';
 import FileSelect from 'components/FileSelect';
-import {getStudyGroupFromLocalStorage} from 'utils/scheduleUtils';
 import {fetchSpreadSheet} from 'store/scheduleActionCreators';
-import {setSchedule, useSchedule} from 'store/scheduleSlice';
+import {parseScheduleParams, ScheduleParams, scheduleParamsToUrl, setParams, useSchedule} from 'store/scheduleSlice';
+import {removeStudyGroupFromLocalStorage} from 'utils/scheduleUtils';
 
 function App() {
     const dispatch = useAppDispatch();
-    const params = useScheduleParams();
-    const {error, loading, studyGroups} = useSchedule();
+    const {params} = useSchedule();
+    const {error, loading, data} = useSchedule();
     useEffect(() => {
-        let finalParams = {...params};
         const searchString = window.location.search;
+        let url = params.url;
         if (searchString) {
             const urlParams = parseScheduleParams(searchString);
-            dispatch(setScheduleParams(urlParams));
-            window.history.replaceState(null, document.title, window.location.origin + window.location.pathname);
-            finalParams = {...finalParams, ...urlParams};
+            if (urlParams.url) {
+                url = urlParams.url;
+            }
+            if (
+                (urlParams.url && urlParams.url !== params.url) || (urlParams.sheetName && urlParams.sheetName !== params.sheetName)
+            ) {
+                removeStudyGroupFromLocalStorage();
+            }
+            dispatch(setParams(urlParams));
         }
-        if (finalParams.url) {
-            dispatch(fetchSpreadSheet(finalParams.url));
+        if (url) {
+            dispatch(fetchSpreadSheet(url));
         }
     }, []);
 
     // fixme
     useEffect(() => {
-        if (Object.keys(studyGroups).length && !params.sheetName) {
-            dispatch(setScheduleParams({sheetName: Object.keys(studyGroups)[0]}));
+        if (Object.keys(data).length && !params.sheetName) {
+            dispatch(setParams({sheetName: Object.keys(data)[0]}));
         }
-    }, [studyGroups]);
+    }, [data]);
 
     function handleSelectedScheduleChange(e: ChangeEvent<HTMLSelectElement>) {
         const sheetName = e.target.value;
         const nextParams = {
             sheetName
-        } as ScheduleParamsState;
+        } as ScheduleParams;
         if (sheetName !== params.sheetName) {
             nextParams.year = undefined;
             nextParams.groupNumber = undefined;
             nextParams.subgroupNumber = undefined;
         }
-        dispatch(setScheduleParams(nextParams));
+        dispatch(setParams(nextParams));
     }
 
     return (
         <div className="app">
             <center style={{marginBottom: 30}}>DEV</center>
             <div className="container">
-                <FileSelect onFileLoaded={schedules => {
-                    dispatch(setSchedule(schedules));
-                    dispatch(setScheduleParams({sheetName: Object.keys(schedules)[0]}));
-                }} />
+                <button
+                    style={{marginBlock: 10}}
+                    onClick={() => {
+                        navigator.clipboard.writeText(window.location.origin + window.location.pathname + scheduleParamsToUrl(params));
+                    }}
+                >
+                    Поделиться расписанием
+                </button>
+                <br/>
 
-                {studyGroups &&
-                    <select style={{marginBlock: 10}} onChange={handleSelectedScheduleChange}
-                            value={params.sheetName}>
-                        {Object.keys(studyGroups).map(s =>
+                <FileSelect />
+
+                {data &&
+                    <select
+                        style={{marginBlock: 10}}
+                        onChange={handleSelectedScheduleChange}
+                        value={params.sheetName}
+                    >
+                        {Object.keys(data).map(s =>
                             <option key={s} value={s}>{s}</option>
                         )}
                     </select>
                 }
 
-                {Object.keys(studyGroups).length > 0 &&
-                    <Schedule key={params.sheetName} />
-                }
+                <Schedule />
             </div>
         </div>
     );
