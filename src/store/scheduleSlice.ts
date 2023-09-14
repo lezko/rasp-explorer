@@ -48,7 +48,8 @@ export function scheduleParamsToUrl(params: ScheduleParams): string {
     let urlString = '?';
     for (const [paramName, paramValue] of Object.entries(params)) {
         if (paramValue !== undefined) {
-            urlString += `${paramName}=${paramValue}&`;
+            const encodedValue = paramName === 'sheetName' ? encodeURIComponent(paramValue) : paramValue;
+            urlString += `${paramName}=${encodedValue}&`;
         }
     }
     return urlString;

@@ -30,6 +30,9 @@ const StudyGroupSelect = () => {
                 }));
             }}>
                 <option value=""></option>
+                {disabled && year &&
+                    <option value={String(year)}>{year}</option>
+                }
                 {!disabled && Object.keys(selectOptions).map(y =>
                     <option key={y} value={String(y)}>{y}</option>
                 )}
@@ -51,6 +54,9 @@ const StudyGroupSelect = () => {
                 }
             }}>
                 <option value=""></option>
+                {disabled && groupNumber &&
+                    <option value={String(groupNumber)}>{groupNumber}</option>
+                }
                 {!disabled && year && Object.keys(selectOptions[year]).map((gn, i) =>
                     <option key={i} value={gn}>{gn}</option>
                 )}
@@ -73,6 +79,9 @@ const StudyGroupSelect = () => {
                 }}
             >
                 <option value=""></option>
+                {disabled && subgroupNumber &&
+                    <option value={String(subgroupNumber)}>{subgroupNumber}</option>
+                }
                 {!disabled && year && groupNumber && Object.keys(selectOptions[year][groupNumber]).map((sgn, i) =>
                     <option key={i} value={sgn}>{sgn}</option>
                 )}
