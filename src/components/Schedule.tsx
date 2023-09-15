@@ -4,35 +4,35 @@ import styles from 'scss/components/Schedule.module.scss';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
 import {findStudyGroup, getStudyGroupFromLocalStorage} from 'utils/scheduleUtils';
-import {scheduleParamsToUrl, useSchedule} from 'store/scheduleSlice';
+import {useSchedule} from 'store/scheduleSlice';
 import StudyGroupSelect from 'components/StudyGroupSelect';
 import Spinner from 'components/Spinner';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCircleCheck} from '@fortawesome/free-solid-svg-icons';
 
 const Schedule = () => {
-    const {data, loading, params} = useSchedule();
-    const {sheetName, year, groupNumber, subgroupNumber, url} = params;
+    const {data, loading, error, params} = useSchedule();
+    const {sheetIndex, year, groupNumber, subgroupNumber, url} = params;
     const currentWeekNumber = getCurrentWeekNumber();
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
     // const [scheduleState, setScheduleState] = useState<'offline' | 'checking' | 'upToDate' | 'default'>('default');
 
     let scheduleState = null;
     const hasData = Object.keys(data).length > 0;
-    const groups = hasData && sheetName ? data[sheetName] : [];
+    const groups = hasData && (sheetIndex !== undefined) ? Object.values(data)[sheetIndex] : [];
     let studyGroup = findStudyGroup(groups, year, groupNumber, subgroupNumber);
     const savedGroup = getStudyGroupFromLocalStorage();
 
-    if (loading) {
-        if (savedGroup && savedGroup.year === year && savedGroup.groupNumber === groupNumber && savedGroup.subgroupNumber === subgroupNumber) {
-            scheduleState = <>Checking for updates <Spinner /></>;
+
+    if (savedGroup && savedGroup.year === year && savedGroup.groupNumber === groupNumber && savedGroup.subgroupNumber === subgroupNumber) {
+        if (loading || error) {
+            scheduleState = error ? <>Offline view</> : <>Checking for updates <Spinner /></>;
             studyGroup = savedGroup;
-            console.log(studyGroup);
         } else {
-            scheduleState = <>Loading <Spinner /></>;
+            scheduleState = <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>;
         }
-    } else if (studyGroup) {
-        scheduleState = <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>
+    } else if (loading) {
+        scheduleState = <>Loading <Spinner /></>;
     }
 
     function getGroupInfoHtml(group: IStudyGroup) {

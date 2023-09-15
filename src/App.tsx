@@ -19,7 +19,7 @@ function App() {
                 url = urlParams.url;
             }
             if (
-                (urlParams.url && urlParams.url !== params.url) || (urlParams.sheetName && urlParams.sheetName !== params.sheetName)
+                (urlParams.url && urlParams.url !== params.url) || (urlParams.sheetIndex && urlParams.sheetIndex !== params.sheetIndex)
             ) {
                 removeStudyGroupFromLocalStorage();
             }
@@ -30,19 +30,14 @@ function App() {
         }
     }, []);
 
-    // fixme
-    useEffect(() => {
-        if (Object.keys(data).length && !params.sheetName) {
-            dispatch(setParams({sheetName: Object.keys(data)[0]}));
-        }
-    }, [data]);
+    const sheetNames = Object.keys(data);
 
     function handleSelectedScheduleChange(e: ChangeEvent<HTMLSelectElement>) {
-        const sheetName = e.target.value;
+        const sheetIndex = +e.target.value;
         const nextParams = {
-            sheetName
+            sheetIndex
         } as ScheduleParams;
-        if (sheetName !== params.sheetName) {
+        if (sheetIndex !== params.sheetIndex) {
             nextParams.year = undefined;
             nextParams.groupNumber = undefined;
             nextParams.subgroupNumber = undefined;
@@ -68,12 +63,13 @@ function App() {
 
                 {data &&
                     <select
+                        disabled={Object.keys(data).length === 0}
                         style={{marginBlock: 10}}
                         onChange={handleSelectedScheduleChange}
-                        value={params.sheetName}
+                        value={params.sheetIndex}
                     >
-                        {Object.keys(data).map(s =>
-                            <option key={s} value={s}>{s}</option>
+                        {sheetNames.map((s, i) =>
+                            <option key={s} value={i}>{s}</option>
                         )}
                     </select>
                 }

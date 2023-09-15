@@ -5,19 +5,21 @@ import {useAppDispatch} from 'store';
 
 const StudyGroupSelect = () => {
     const {data, loading, params} = useSchedule();
-    const {sheetName, year, groupNumber, subgroupNumber} = params;
+    const {sheetIndex, year, groupNumber, subgroupNumber} = params;
     const dispatch = useAppDispatch();
 
     const selectOptions = useMemo(() => {
-        if (Object.keys(data).length && sheetName) {
+        if (Object.keys(data).length && sheetIndex !== undefined) {
             // todo maybe extract to props
-            return getOptionsObject(data[sheetName]);
+            return getOptionsObject(Object.values(data)[sheetIndex]);
         }
         return {};
-    }, [data, sheetName]);
+    }, [data, sheetIndex]);
 
     const disabled = Object.keys(selectOptions).length === 0;
-    const groups = Object.keys(data).length > 0 && sheetName ? data[sheetName] : [];
+    const hasData = Object.keys(data).length > 0;
+    const sheetName = sheetIndex ? Object.keys(data)[sheetIndex] : null;
+    const groups = hasData && sheetName ? data[sheetName] : [];
 
     return (
         <div>

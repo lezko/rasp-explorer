@@ -6,7 +6,7 @@ import {findStudyGroup, saveStudyGroupToLocalStorage, setScheduleParamsToUrl} fr
 
 export interface ScheduleParams {
     url?: string;
-    sheetName?: string;
+    sheetIndex?: number;
     year?: number;
     groupNumber?: number;
     subgroupNumber?: number;
@@ -30,7 +30,9 @@ export function parseScheduleParams(url: string): ScheduleParams {
     const params = new URLSearchParams(url);
     const result: ScheduleParams = {};
     result.url = params.get('url') || undefined;
-    result.sheetName = params.get('sheetName') || undefined;
+
+    const sheetIndex = params.get('sheetIndex');
+    result.sheetIndex = sheetIndex ? +sheetIndex : undefined;
 
     const year = params.get('year');
     result.year = year ? +year : undefined;
@@ -67,7 +69,6 @@ function getScheduleParamsFromLocalStorage(): ScheduleParams | null {
     return null;
 }
 
-
 export const scheduleSlice = createSlice({
     name: 'schedule',
     initialState,
@@ -79,33 +80,46 @@ export const scheduleSlice = createSlice({
         setParams(state, action: PayloadAction<Partial<ScheduleParams>>) {
             const params = {...state.params, ...action.payload};
             saveScheduleParamsToLocalStorage(params);
-            setScheduleParamsToUrl(params);
+
             // fixme absolute cringe
-            const group = findStudyGroup(params.sheetName ? state.data[params.sheetName] || []: [], params.year, params.groupNumber, params.subgroupNumber);
+            const hasData = Object.keys(state.data).length > 0;
+            const groups = hasData && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
+            const group = findStudyGroup(groups, params.year, params.groupNumber, params.subgroupNumber);
             if (group) {
                 saveStudyGroupToLocalStorage(group);
             }
+
             state.params = params;
         },
         setParamsFromString(state, action: PayloadAction<string>) {
             const partialParams = parseScheduleParams(action.payload) as Partial<ScheduleParams>;
             const params = {...state.params, ...partialParams};
             saveScheduleParamsToLocalStorage(params);
-            setScheduleParamsToUrl((params));
-            const group = findStudyGroup(params.sheetName ? state.data[params.sheetName] || []: [], params.year, params.groupNumber, params.subgroupNumber);
+
+            // fixme absolute cringe
+            const hasData = Object.keys(state.data).length > 0;
+            const groups = hasData && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
+            const group = findStudyGroup(groups, params.year, params.groupNumber, params.subgroupNumber);
             if (group) {
                 saveStudyGroupToLocalStorage(group);
             }
+
             state.params = params;
         },
     },
     extraReducers: {
         [fetchSpreadSheet.fulfilled.type]: (state, action: PayloadAction<ParsingResult>) => {
             state.data = action.payload;
+            if (Object.keys(action.payload).length) {
+                state.params.sheetIndex = 0;
+            }
             state.loading = false;
             state.error = '';
             const params = state.params;
-            const group = findStudyGroup(params.sheetName ? action.payload[params.sheetName] || []: [], params.year, params.groupNumber, params.subgroupNumber);
+            // fixme absolute cringe
+            const hasData = Object.keys(state.data).length > 0;
+            const groups = hasData && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
+            const group = findStudyGroup(groups, params.year, params.groupNumber, params.subgroupNumber);
             if (group) {
                 saveStudyGroupToLocalStorage(group);
             }
