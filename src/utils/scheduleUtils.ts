@@ -1,6 +1,7 @@
 import {IStudyGroup} from 'core/IStudyGroup';
 import exp from 'constants';
 import {ScheduleParams, scheduleParamsToUrl} from 'store/scheduleSlice';
+import deepEqual from 'deep-equal';
 
 export function saveStudyGroupToLocalStorage(studyGroup: IStudyGroup) {
     localStorage.setItem('studyGroup', JSON.stringify(studyGroup));
@@ -46,6 +47,21 @@ export function getOptionsObject(studyGroups: IStudyGroup[]): any {
         }
         if (g.subgroupNumber) {
             result[g.year][g.groupNumber][g.subgroupNumber] = {};
+        }
+    }
+    return result;
+}
+
+type StudyGroupDifference = { week: number, day: number }[];
+
+export function getStudyGroupDifference(g1: IStudyGroup, g2: IStudyGroup): StudyGroupDifference {
+    const result: StudyGroupDifference = [];
+    for (let i = 0; i < 6; i++) {
+        if (!deepEqual(g1.schedule.firstWeek[i], g2.schedule.firstWeek[i])) {
+            result.push({week: 1, day: i});
+        }
+        if (!deepEqual(g1.schedule.secondWeek[i], g2.schedule.secondWeek[i])) {
+            result.push({week: 2, day: i});
         }
     }
     return result;
