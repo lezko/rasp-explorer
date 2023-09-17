@@ -4,6 +4,17 @@
       "local": "Локальный файл",
       "url": "Ссылка",
       "gssID": "Google Spreadsheet ID"
-    }
+    },
+    "share": "Поделиться",
+    "linkCopied": "Ссылка скопирована",
+    "chooseFile": "Выбрать файл",
+    "chooseFileLabel": "Выберите файл",
+    "error": "Ошибка",
+    "fileContentError": "В файле не найдено ни одного расписания",
+    "constructUrlFromGssID": "составить ссылку с помощью Google Spreadsheet ID",
+    "enterUrl": "Введите ссылку",
+    "enterGssID": "Введите Google Spreadsheet ID",
+    "change": "Изменить",
+    "changeFile": "Изменить файл"
   }
 }

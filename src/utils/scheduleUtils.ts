@@ -70,3 +70,28 @@ export function getStudyGroupDifference(g1: IStudyGroup, g2: IStudyGroup): Study
 export function setScheduleParamsToUrl(params: ScheduleParams) {
     window.history.replaceState(null, document.title, window.location.origin + window.location.pathname + scheduleParamsToUrl(params));
 }
+
+export function getLastUpdateTimeString(time: number) {
+    const t = Date.now() - time;
+    console.log(t);
+    const msInMinute = 1000 * 60;
+    const msInHour = msInMinute * 60;
+    const msInDay = msInHour * 24;
+
+    const d = Math.floor(t / msInDay);
+    if (d > 0) {
+        return `Сохранено ${d}д назад`;
+    }
+
+    const h = Math.floor(t / msInHour);
+    if (h > 0) {
+        return `Сохранено ${h}ч назад`;
+    }
+
+    const m = Math.floor(t / msInMinute);
+    if (m > 0) {
+        return `Сохранено ${m}м назад`;
+    }
+
+    return `Сохранено менее минуты назад`;
+}

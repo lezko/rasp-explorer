@@ -4,7 +4,7 @@ import styles from 'scss/components/Schedule.module.scss';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
 import {
-    findStudyGroup,
+    findStudyGroup, getLastUpdateTimeString,
     getStudyGroupDifference,
     getStudyGroupFromLocalStorage,
     saveStudyGroupToLocalStorage
@@ -18,9 +18,11 @@ import {useAppSelector} from 'store';
 import {Modal, Select} from 'antd';
 import {DayName} from 'core/ISchedule';
 import styled from 'styled-components';
+import {getCacheFromLocalStorage} from 'utils/cacheStorage';
 
 const Schedule = () => {
     const state = useSchedule();
+    const cache = getCacheFromLocalStorage();
     const {data, loading, error, params} = state;
     const {sheetIndex, year, groupNumber, subgroupNumber, url} = params;
     const currentWeekNumber = getCurrentWeekNumber();
@@ -29,16 +31,16 @@ const Schedule = () => {
 
     // const [{confirm}, contextHolder] = Modal.useModal()
     const {info} = Modal;
-    let scheduleState = null;
+    let scheduleState: 'default' | 'offline' | 'localOffline' | 'checking' | 'loading' | 'upToDate' = 'default';
     let studyGroup = getGroupFromState(state);
     const savedGroup = getStudyGroupFromLocalStorage();
 
     if (savedGroup && savedGroup.year === year && savedGroup.groupNumber === groupNumber && savedGroup.subgroupNumber === subgroupNumber) {
         if (loading || error) {
-            scheduleState = error ? <>Offline view</> : <>Checking for updates <Spinner /></>;
+            scheduleState = error ? 'offline' : 'checking';
             studyGroup = savedGroup;
         } else {
-            if (studyGroup) {
+            if (studyGroup && url) {
                 const diff = getStudyGroupDifference(studyGroup, savedGroup);
                 if (diff.length) {
                     info({
@@ -51,11 +53,29 @@ const Schedule = () => {
                     });
                 }
                 saveStudyGroupToLocalStorage(studyGroup);
+                scheduleState = 'upToDate'
+            } else {
+                // from local file
+                studyGroup = savedGroup;
+                scheduleState = 'localOffline';
             }
-            scheduleState = <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>;
         }
     } else if (loading) {
-        scheduleState = <>Loading <Spinner /></>;
+        scheduleState = 'loading';
+    }
+
+    const stateToElement = {
+        default: null,
+        offline: <>
+            <div>
+                Offline view
+            </div>
+            <span style={{fontSize: '.8rem'}}>{cache && getLastUpdateTimeString(cache.lastUpdateTime)}</span>
+        </>,
+        localOffline: <>Offline view</>,
+        upToDate: <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>,
+        checking: <>Checking for updates <Spinner /></>,
+        loading: <>Loading <Spinner /></>
     }
 
     function getGroupInfoHtml(group: IStudyGroup) {
@@ -69,8 +89,8 @@ const Schedule = () => {
 
     return (
         <div className={styles.schedule}>
-            <StudyGroupSelect />
-            <h4 style={{margin: '30px 0 10px 0'}}>{scheduleState}</h4>
+            {(data || scheduleState === 'checking') && <StudyGroupSelect />}
+            <h4 style={{margin: '20px 0 10px 0'}}>{stateToElement[scheduleState]}</h4>
 
             {studyGroup &&
                 <div>
@@ -79,7 +99,7 @@ const Schedule = () => {
                     <div>
                         <span>Неделя:</span>
                         <Select
-                            style={{width: 120, marginLeft: 5}}
+                            style={{width: 120, marginLeft: 5, marginBlock: 10}}
                             options={[
                                 {value: 1, label: '1 ' + (currentWeekNumber === 1 ? '(текущая)' : '')},
                                 {value: 2, label: '2 ' + (currentWeekNumber === 2 ? '(текущая)' : '')}

@@ -2,7 +2,7 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {fetchSpreadSheet} from 'store/scheduleActionCreators';
 import {ParsingResult} from 'core/ScheduleParser';
 import {useAppSelector} from 'store/index';
-import {findStudyGroup, saveStudyGroupToLocalStorage, setScheduleParamsToUrl} from 'utils/scheduleUtils';
+import {findStudyGroup, removeStudyGroupFromLocalStorage, saveStudyGroupToLocalStorage} from 'utils/scheduleUtils';
 
 export interface ScheduleParams {
     url?: string;
@@ -13,7 +13,7 @@ export interface ScheduleParams {
 }
 
 export interface ScheduleState {
-    data: ParsingResult;
+    data: ParsingResult | null;
     // fixme type
     optionsTree: any;
     loading: boolean;
@@ -22,8 +22,8 @@ export interface ScheduleState {
 }
 
 const initialState: ScheduleState = {
-    data: {},
-    optionsTree: {},
+    data: null,
+    optionsTree: null,
     loading: false,
     error: '',
     params: getScheduleParamsFromLocalStorage() || {}
@@ -72,12 +72,20 @@ function getScheduleParamsFromLocalStorage(): ScheduleParams | null {
     return null;
 }
 
+function removeScheduleParamsFromLocalStorage() {
+    localStorage.removeItem('scheduleParams');
+}
+
 export const scheduleSlice = createSlice({
     name: 'schedule',
     initialState,
     reducers: {
         setData(state, action: PayloadAction<ParsingResult>) {
             state.data = action.payload;
+            if (Object.keys(action.payload).length) {
+                state.params.sheetIndex = 0;
+                saveScheduleParamsToLocalStorage(state.params);
+            }
         },
         // todo extract to middleware
         setParams(state, action: PayloadAction<Partial<ScheduleParams>>) {
@@ -85,21 +93,30 @@ export const scheduleSlice = createSlice({
             saveScheduleParamsToLocalStorage(params);
 
             // fixme absolute cringe
-            const hasData = Object.keys(state.data).length > 0;
-            const groups = hasData && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
+            const groups = state.data && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
             const group = findStudyGroup(groups, params.year, params.groupNumber, params.subgroupNumber);
             if (group) {
                 saveStudyGroupToLocalStorage(group);
             }
 
             state.params = params;
-        }
+        },
+        resetState(state) {
+            state.data = null;
+            state.params = {};
+            state.loading = false;
+            state.error = '';
+            state.optionsTree = null;
+            removeStudyGroupFromLocalStorage();
+            removeScheduleParamsFromLocalStorage();
+        },
     },
     extraReducers: {
         [fetchSpreadSheet.fulfilled.type]: (state, action: PayloadAction<ParsingResult>) => {
             state.data = action.payload;
             if (Object.keys(action.payload).length) {
                 state.params.sheetIndex = 0;
+                saveScheduleParamsToLocalStorage(state.params);
             }
             state.loading = false;
             state.error = '';
@@ -108,14 +125,14 @@ export const scheduleSlice = createSlice({
             state.loading = true;
         },
         [fetchSpreadSheet.rejected.type]: (state, action: PayloadAction<string>) => {
-            state.data = {};
+            state.data = null;
             state.loading = false;
             state.error = action.payload;
         }
     }
 });
 
-export const {setData, setParams} = scheduleSlice.actions;
+export const {setData, setParams, resetState} = scheduleSlice.actions;
 export default scheduleSlice.reducer;
 
 export function useSchedule(): ScheduleState {
@@ -123,7 +140,6 @@ export function useSchedule(): ScheduleState {
 }
 
 export function getGroupFromState(state: ScheduleState) {
-    const hasData = Object.keys(state.data).length > 0;
-    const groups = hasData && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
+    const groups = state.data && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
     return findStudyGroup(groups, state.params.year, state.params.groupNumber, state.params.subgroupNumber);
 }
