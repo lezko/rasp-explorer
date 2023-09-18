@@ -1,9 +1,36 @@
 {
+  "title": "Rasp Explorer",
+  "githubUrl": "https://github.com/lezko",
+  "repoUrl": "https://github.com/lezko/rasp-explorer",
+  "email": "timulezko02@gmail.com",
   "ru": {
+    "week": {
+      "long": {
+        "1": "Числитель",
+        "2": "Знаменатель"
+      },
+      "short": {
+        "1": "Числ",
+        "2": "Знам"
+      }
+    },
     "fileSelect": {
       "local": "Локальный файл",
       "url": "Ссылка",
       "gssID": "Google Spreadsheet ID"
-    }
+    },
+    "share": "Поделиться",
+    "linkCopied": "Ссылка скопирована",
+    "chooseFile": "Выбрать файл",
+    "chooseFileLabel": "Выберите файл",
+    "error": "Ошибка",
+    "fileContentError": "В файле не найдено ни одного расписания",
+    "constructUrlFromGssID": "составить ссылку с помощью Google Spreadsheet ID",
+    "enterUrl": "Введите ссылку",
+    "enterGssID": "Введите Google Spreadsheet ID",
+    "change": "Изменить",
+    "changeFile": "Изменить файл",
+    "showSpecialization": "Показать название направления",
+    "hideSpecialization": "Скрыть название направления"
   }
 }

@@ -1,62 +1,90 @@
 import {IStudyGroup} from 'core/IStudyGroup';
-import {useState} from 'react';
-import styles from 'scss/components/Schedule.module.scss';
+import {useEffect, useState} from 'react';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
-import {scheduleParamsToUrl, setScheduleParams, useScheduleParams} from 'store/scheduleParamsSlice';
+import {
+    getLastUpdateTimeString,
+    getStudyGroupDifference,
+    getStudyGroupFromLocalStorage,
+    saveStudyGroupToLocalStorage
+} from 'utils/scheduleUtils';
+import {getGroupFromState, ScheduleParams, setParams, useSchedule} from 'store/scheduleSlice';
+import StudyGroupSelect from 'components/StudyGroupSelect';
+import Spinner from 'components/Spinner';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faCircleCheck, faAngleUp, faAngleDown} from '@fortawesome/free-solid-svg-icons';
+import {Modal, Select} from 'antd';
+import {DayName} from 'core/ISchedule';
+import {getCacheFromLocalStorage, saveCacheToLocalStorage} from 'utils/cacheStorage';
 import {useAppDispatch} from 'store';
-import {removeStudyGroupFromLocalStorage, saveStudyGroupToLocalStorage} from 'utils/scheduleUtils';
-import {useSchedule} from 'store/scheduleSlice';
+import language from 'language.json';
+import {setSettings, useSettings} from 'store/settingsSlice';
+
+const lang = language.ru;
 
 const Schedule = () => {
-    const params = useScheduleParams();
-    const {studyGroups, loading, error} = useSchedule();
-
-    const groups = params.sheetName ? studyGroups[params.sheetName] : [];
-    // todo memo optimization
+    const state = useSchedule();
     const dispatch = useAppDispatch();
-    const {year, groupNumber, subgroupNumber} = useScheduleParams();
+    const cache = getCacheFromLocalStorage();
+    const {data, loading, error, params} = state;
+    const {sheetIndex, year, groupNumber, subgroupNumber, url} = params;
     const currentWeekNumber = getCurrentWeekNumber();
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
+    const {showSpecialization} = useSettings();
+    // const [scheduleState, setScheduleState] = useState<'offline' | 'checking' | 'upToDate' | 'default'>('default');
 
-    const years = Array.from(groups.reduce((s: any, g: any) => {
-        if (!s.has(g.year)) {
-            s.add(g.year);
-        }
-        return s;
-    }, new Set())) as number[];
+    const [{info}, contextHolder] = Modal.useModal();
+    let scheduleState: 'default' | 'offline' | 'localOffline' | 'checking' | 'loading' | 'upToDate' = 'default';
+    let studyGroup = getGroupFromState(state);
+    const savedGroup = getStudyGroupFromLocalStorage();
 
-    function getGroupNumbers(year: number): number[] {
-        const s = new Set<number>();
-        for (const group of groups) {
-            if (group.year === year) {
-                s.add(group.groupNumber);
-            }
-        }
-        return Array.from(s);
-    }
+    const [studyGroupDiff, setStudyGroupDiff] = useState<ReturnType<typeof getStudyGroupDifference> | null>(null);
 
-    function getSubgroupNumbers(year: number, groupNumber: number): number[] {
-        const s = new Set<number>();
-        for (const group of groups) {
-            if (group.year === year && group.groupNumber === groupNumber) {
-                if (group.subgroupNumber) {
-                    s.add(group.subgroupNumber);
+    if (savedGroup && savedGroup.year === year && savedGroup.groupNumber === groupNumber && savedGroup.subgroupNumber === subgroupNumber) {
+
+        if (loading || error) {
+            scheduleState = error ? 'offline' : 'checking';
+            studyGroup = savedGroup;
+        } else {
+            if (studyGroup && url) {
+                const diff = getStudyGroupDifference(studyGroup, savedGroup);
+                if (diff.length) {
+                    setStudyGroupDiff(diff);
                 }
+                saveStudyGroupToLocalStorage(studyGroup);
+                scheduleState = 'upToDate';
+            } else {
+                // from local file
+                studyGroup = savedGroup;
+                scheduleState = 'localOffline';
             }
         }
-        return Array.from(s);
+    } else {
+        if (loading) {
+            scheduleState = 'loading';
+        } else if (url && studyGroup) {
+            scheduleState = 'upToDate';
+            saveStudyGroupToLocalStorage(studyGroup);
+        }
     }
 
-    function getGroup(year: number, groupNumber: number, subgroupNumber?: number): IStudyGroup {
-        for (const group of groups) {
-            if (group.year === year && group.groupNumber === groupNumber && (!subgroupNumber || group.subgroupNumber === subgroupNumber)) {
-                saveStudyGroupToLocalStorage(group);
-                return group;
-            }
-        }
-        throw new Error(`Group not found: year ${year}, groupNumber ${groupNumber}, subgroupNumber ${subgroupNumber}`);
-    }
+    const stateToElement = {
+        default: null,
+        offline: <>
+            <div>
+                Offline view
+            </div>
+            <span
+                style={{fontSize: '.8rem', color: 'gray', fontWeight: 400, fontStyle: 'italic'}}
+            >
+                {cache && getLastUpdateTimeString(cache.lastUpdateTime)}
+            </span>
+        </>,
+        localOffline: <>Offline view</>,
+        upToDate: <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>,
+        checking: <>Checking for updates <Spinner /></>,
+        loading: <>Loading <Spinner /></>
+    };
 
     function getGroupInfoHtml(group: IStudyGroup) {
         return (
@@ -67,70 +95,85 @@ const Schedule = () => {
         );
     }
 
+    const sheetNames = data ? Object.keys(data) : [];
+
+    function handleSelectedScheduleChange(sheetIndex: number) {
+        const nextParams = {
+            sheetIndex
+        } as ScheduleParams;
+        if (sheetIndex !== params.sheetIndex) {
+            nextParams.year = undefined;
+            nextParams.groupNumber = undefined;
+            nextParams.subgroupNumber = undefined;
+        }
+        saveCacheToLocalStorage({sheetName: sheetNames[sheetIndex]});
+        dispatch(setParams(nextParams));
+    }
+
+    useEffect(() => {
+        if (studyGroupDiff) {
+            info({
+                title: 'Изменения в расписании',
+                okButtonProps: {type: 'default'},
+                content: <div style={{maxHeight: 100, overflowY: 'auto'}}>
+                    <ul>{studyGroupDiff.map((d, i) =>
+                        <li key={i}>{d.week === 1 ? lang.week.long['1'] : lang.week.long['2']}, {DayName[d.day]}</li>
+                    )}</ul>
+                </div>
+            });
+            setStudyGroupDiff(null);
+        }
+    }, [studyGroupDiff]);
+
     return (
-        <div className={styles.schedule}>
-            <span>Курс:</span>
-            <select value={String(year) || ''} onChange={e => {
-                dispatch(setScheduleParams({
-                    year: +e.target.value || undefined,
-                    groupNumber: undefined,
-                    subgroupNumber: undefined
-                }));
-                removeStudyGroupFromLocalStorage();
-            }}>
-                <option value=""></option>
-                {years.map(y =>
-                    <option key={y} value={String(y)}>{y}</option>
-                )}
-            </select>
-            <br />
+        <div>
+            {contextHolder}
 
-            <span>Группа:</span>
-            <select value={String(groupNumber) || ''} onChange={e => {
-                dispatch(setScheduleParams({
-                    groupNumber: +e.target.value || undefined,
-                    subgroupNumber: undefined,
-                }));
-                removeStudyGroupFromLocalStorage();
-            }}>
-                <option value=""></option>
-                {year && getGroupNumbers(year).map((gn, i) =>
-                    <option key={i} value={gn}>{gn}</option>
-                )}
-            </select>
-            <br />
+            {(data || studyGroup || scheduleState === 'checking') &&
+                <Select
+                    disabled={!data}
+                    style={{marginBottom: 10, width: 250}}
+                    onChange={handleSelectedScheduleChange}
+                    value={params.sheetIndex}
+                    options={data ? sheetNames.map((s, i) => ({
+                        value: i, label: s
+                    })) : [{value: sheetIndex, label: cache?.sheetName}]}
+                />
+            }
 
-            <span>Подгруппа:</span>
-            <select value={String(subgroupNumber) || ''}
-                    onChange={e => dispatch(setScheduleParams({subgroupNumber: +e.target.value || undefined}))}>
-                <option value=""></option>
-                {year && groupNumber && getSubgroupNumbers(year, groupNumber).map((sgn, i) =>
-                    <option key={i} value={sgn}>{sgn}</option>
-                )}
-            </select>
-            <br />
+            {(data || studyGroup || scheduleState === 'checking') && <StudyGroupSelect />}
+            {scheduleState === 'loading' ?
+                <center><Spinner style={{marginTop: 30, width: 30, height: 30}} /></center>
+                :
+                <h4 style={{margin: '20px 0 10px 0'}}>{stateToElement[scheduleState]}</h4>
+            }
 
-            {year && groupNumber && (!getSubgroupNumbers(year, groupNumber).length || subgroupNumber) &&
-                <div style={{marginTop: 20}}>
-                    {getGroupInfoHtml(getGroup(year, groupNumber, subgroupNumber))}
-                    <span>Неделя:</span>
-                    <select
-                        style={{marginBlock: 10}}
-                        value={String(weekNumber)}
-                        onChange={e => setWeekNumber(+e.target.value)}
+            {studyGroup &&
+                <div>
+                    <div
+                        style={{display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '.9rem', marginTop: 10, fontStyle: 'italic'}}
+                        onClick={() => dispatch(setSettings({showSpecialization: !showSpecialization}))}
                     >
-                        <option value="1">1 {currentWeekNumber === 1 ? '(текущая)' : ''}</option>
-                        <option value="2">2 {currentWeekNumber === 2 ? '(текущая)' : ''}</option>
-                    </select>
-                    <br />
+                        <span>{showSpecialization ? lang.hideSpecialization : lang.showSpecialization}</span>
+                        <FontAwesomeIcon style={{marginLeft: 5}} icon={showSpecialization ? faAngleUp : faAngleDown} />
+                    </div>
+                    {showSpecialization && getGroupInfoHtml(studyGroup)}
 
-                    {params.url && year && groupNumber && (!getSubgroupNumbers(year, groupNumber).length || subgroupNumber) &&
-                        <button style={{marginBlock: 10}} onClick={() => {
-                            navigator.clipboard.writeText(window.location.origin + window.location.pathname + scheduleParamsToUrl(params));
-                        }}>Скопировать ссылку на текущее расписание</button>}
+                    <div>
+                        <span>Неделя:</span>
+                        <Select
+                            style={{width: 160, marginLeft: 5, marginBlock: 10}}
+                            options={[
+                                {value: 1, label: lang.week.short['1'] + (currentWeekNumber === 1 ? ' (текущая)' : '')},
+                                {value: 2, label: lang.week.short['2'] + (currentWeekNumber === 2 ? ' (текущая)' : '')}
+                            ]}
+                            value={weekNumber}
+                            onChange={value => setWeekNumber(+value)}
+                        />
+                    </div>
 
-                    <Week week={weekNumber === 1 ? getGroup(year, groupNumber, subgroupNumber).schedule.firstWeek :
-                        getGroup(year, groupNumber, subgroupNumber).schedule.secondWeek
+                    <Week week={weekNumber === 1 ? studyGroup.schedule.firstWeek :
+                        studyGroup.schedule.secondWeek
                     } />
                 </div>
             }
