@@ -50,6 +50,9 @@ const StyledError = styled.span`
   display: inline-block;
   color: red;
   margin-top: 10px;
+  max-height: 100px;
+  overflow-y: auto;
+  line-height: 1;
 `;
 
 const StyledBody = styled.div`
@@ -131,7 +134,8 @@ const ChooseFileModal: FC<ChooseFileModalProps> = ({open, setOpen, onDataLoaded}
             title={lang.chooseFile}
             okButtonProps={{
                 disabled: (fileAccessType === FileAccessType.Local && !fileName) || (fileAccessType === FileAccessType.Url && !urlString),
-                loading
+                loading,
+                type: 'default'
             }}
             onOk={handleSubmit}
             closable

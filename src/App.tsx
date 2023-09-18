@@ -1,7 +1,6 @@
-import {ChangeEvent, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import Schedule from 'components/Schedule';
 import {useAppDispatch} from 'store';
-import FileSelect from 'components/FileSelect';
 import {fetchSpreadSheet} from 'store/scheduleActionCreators';
 import {
     parseScheduleParams,
@@ -12,21 +11,74 @@ import {
     useSchedule
 } from 'store/scheduleSlice';
 import {removeStudyGroupFromLocalStorage} from 'utils/scheduleUtils';
-import {Button, Select} from 'antd';
+import {Button, ConfigProvider, Modal, Select} from 'antd';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faLink} from '@fortawesome/free-solid-svg-icons';
 import language from 'language.json';
 import ChooseFileModal from 'components/ChooseFileModal';
 import {getCacheFromLocalStorage, saveCacheToLocalStorage} from 'utils/cacheStorage';
+import Header from 'components/Header';
+import styled, {createGlobalStyle, ThemeProvider} from 'styled-components';
+import {Theme, useSettings} from 'store/settingsSlice';
+import Footer from 'components/Footer';
 
 // todo lang setting
 const lang = language.ru;
+
+interface ITheme {
+    color: string;
+    bgColor: string;
+    borderColor: string
+    hoverColor: string;
+    bgHoverColor: string;
+    bgActiveColor: string;
+    placeholderColor: string;
+    secondaryBgColor: string;
+}
+
+// fixme absolute cringe
+const themes = {
+    [Theme.Light]: {
+        color: 'black',
+        bgColor: 'white',
+        borderColor: '#dec9c9',
+        hoverColor: 'black',
+        bgHoverColor: '#d5d5d5',
+        bgActiveColor: '#a2a2a2',
+        placeholderColor: '#969696',
+        secondaryBgColor: '#e6e6e6'
+    } as ITheme,
+    [Theme.Dark]: {
+        color: '#bbb7b0',
+        bgColor: '#2d2d2d',
+        borderColor: '#595854',
+        hoverColor: '#bbb7b0',
+        bgHoverColor: '#3f3e3e',
+        bgActiveColor: '#5b5b5b',
+        placeholderColor: '#5b5857',
+        secondaryBgColor: '#232221'
+    } as ITheme
+};
+
+const GlobalStyle = createGlobalStyle`
+  body {
+    color: ${props => props.theme.color};
+    background-color: ${props => props.theme.bgColor};
+  }
+`;
+
+const StyledAppMain = styled.main`
+  flex: 1;
+`;
 
 function App() {
     const dispatch = useAppDispatch();
     const {params} = useSchedule();
     const {error, loading, data} = useSchedule();
     const cache = getCacheFromLocalStorage();
+    const {theme} = useSettings();
+    const [{error: modalError}, contextHolder] = Modal.useModal()
+
     useEffect(() => {
         const searchString = window.location.search;
         let url = params.url;
@@ -45,9 +97,18 @@ function App() {
         if (url) {
             dispatch(fetchSpreadSheet(url)).unwrap()
                 .then(() => {
-                    saveCacheToLocalStorage({lastUpdateTime: Date.now()})
+                    saveCacheToLocalStorage({lastUpdateTime: Date.now()});
                 })
-                .catch(e => {});
+                .catch(message => {
+                    modalError({
+                        closable: true,
+                        title: lang.error,
+                        content: <div style={{maxHeight: 100, overflowY: 'auto'}}>
+                            {message}
+                        </div>,
+                        okButtonProps: {type: 'default'}
+                    })
+                });
         } else {
             dispatch(resetState());
         }
@@ -77,47 +138,79 @@ function App() {
 
     const [modalOpen, setModalOpen] = useState(false);
 
+    const currentTheme = themes[theme];
     return (
-        <div className="app">
-            <ChooseFileModal open={modalOpen} setOpen={setModalOpen} onDataLoaded={url => {
-                dispatch(setParams({url}));
-            }} />
+        <ThemeProvider theme={currentTheme}>
+            <GlobalStyle />
 
-            <center style={{marginBottom: 30}}>DEV</center>
-            <div className="container">
-                <div style={{display: 'flex'}}>
-                    {params.url && data &&
-                        <Button
-                            style={{marginRight: 10}}
-                            onClick={handleShare}
-                        >
-                            {shareBtnText} <FontAwesomeIcon style={{marginLeft: 5}} icon={faLink} />
-                        </Button>
+            <ConfigProvider theme={{
+                token: {
+                    colorText: currentTheme.color,
+                    colorBgBase: currentTheme.bgColor,
+                    colorBorder: currentTheme.borderColor,
+                    colorPrimaryHover: currentTheme.hoverColor,
+                    colorIcon: currentTheme.color,
+                    colorTextDisabled: 'gray',
+                    colorTextPlaceholder: currentTheme.placeholderColor
+                },
+                components: {
+                    Select: {
+                        controlItemBgHover: currentTheme.bgHoverColor,
+                        controlItemBgActive: currentTheme.bgActiveColor,
+
                     }
-
-                    {data && !loading ?
-                        <div>
-                            <Button onClick={() => setModalOpen(true)}>{lang.changeFile}</Button>
-                        </div>
-                        : (!loading && <Button onClick={() => setModalOpen(true)}>{lang.chooseFile}</Button>)
-                    }
-                </div>
-
-                {data &&
-                    <Select
-                        disabled={Object.keys(data).length === 0}
-                        style={{marginBlock: 10, width: 250}}
-                        onChange={handleSelectedScheduleChange}
-                        value={params.sheetIndex}
-                        options={sheetNames.map((s, i) => ({
-                            value: i, label: s
-                        }))}
-                    />
                 }
+            }}>
+                {contextHolder}
 
-                <Schedule />
-            </div>
-        </div>
+                <div className="app">
+                    <Header />
+
+                    <StyledAppMain>
+                        <ChooseFileModal open={modalOpen} setOpen={setModalOpen} onDataLoaded={url => {
+                            dispatch(setParams({url}));
+                        }} />
+
+                        <div className="container">
+                            <div style={{display: 'flex'}}>
+                                {/* fixme bug when switching from local to url */}
+                                {params.url && !loading &&
+                                    <Button
+                                        style={{marginRight: 10}}
+                                        onClick={handleShare}
+                                    >
+                                        {shareBtnText} <FontAwesomeIcon style={{marginLeft: 5}} icon={faLink} />
+                                    </Button>
+                                }
+
+                                {(data || params.url) && !loading ?
+                                    <div>
+                                        <Button onClick={() => setModalOpen(true)}>{lang.changeFile}</Button>
+                                    </div>
+                                    : (!loading && <Button onClick={() => setModalOpen(true)}>{lang.chooseFile}</Button>)
+                                }
+                            </div>
+
+                            {data &&
+                                <Select
+                                    disabled={Object.keys(data).length === 0}
+                                    style={{marginBlock: 10, width: 250}}
+                                    onChange={handleSelectedScheduleChange}
+                                    value={params.sheetIndex}
+                                    options={sheetNames.map((s, i) => ({
+                                        value: i, label: s
+                                    }))}
+                                />
+                            }
+
+                            <Schedule />
+                        </div>
+                    </StyledAppMain>
+
+                    <Footer />
+                </div>
+            </ConfigProvider>
+        </ThemeProvider>
     );
 }
 

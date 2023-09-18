@@ -4,24 +4,25 @@
     padding: 0;
     box-sizing: border-box;
 }
+html {
+    overflow-x: hidden;
+    margin-right: calc(-1 * (100vw - 100%));
+}
 html, body, #root, .app {
-    min-height: 100vh;
+    /* todo check browser support */
+    min-height: 100svh;
 }
 .app {
-    padding-block: 30px;
-    /*display: flex;*/
-    /*flex-direction: column;*/
+    /*padding-block: 30px;*/
+    display: flex;
+    flex-direction: column;
 }
 .container {
     max-width: 1000px;
     margin: 0 auto;
     padding-inline: 10px;
 }
-@media (max-width: 600px) {
-    .container {
-        padding: 20px;
-    }
-}
+
 body {
     margin: 0;
     font-family: 'Roboto', sans-serif;
@@ -43,4 +44,14 @@ select {
 
 button {
     padding: 5px 10px;
+}
+
+.ant-select .ant-select-arrow,
+.ant-select-selection-item {
+    /* fixme */
+    color: inherit !important;
+}
+
+a, a:visited, a:active {
+    color: inherit;
 }

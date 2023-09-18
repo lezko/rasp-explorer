@@ -1,10 +1,9 @@
 import {IStudyGroup} from 'core/IStudyGroup';
 import {useState} from 'react';
-import styles from 'scss/components/Schedule.module.scss';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
 import {
-    findStudyGroup, getLastUpdateTimeString,
+    getLastUpdateTimeString,
     getStudyGroupDifference,
     getStudyGroupFromLocalStorage,
     saveStudyGroupToLocalStorage
@@ -14,10 +13,8 @@ import StudyGroupSelect from 'components/StudyGroupSelect';
 import Spinner from 'components/Spinner';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCircleCheck} from '@fortawesome/free-solid-svg-icons';
-import {useAppSelector} from 'store';
 import {Modal, Select} from 'antd';
 import {DayName} from 'core/ISchedule';
-import styled from 'styled-components';
 import {getCacheFromLocalStorage} from 'utils/cacheStorage';
 
 const Schedule = () => {
@@ -29,8 +26,7 @@ const Schedule = () => {
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
     // const [scheduleState, setScheduleState] = useState<'offline' | 'checking' | 'upToDate' | 'default'>('default');
 
-    // const [{confirm}, contextHolder] = Modal.useModal()
-    const {info} = Modal;
+    const [{info}, contextHolder] = Modal.useModal()
     let scheduleState: 'default' | 'offline' | 'localOffline' | 'checking' | 'loading' | 'upToDate' = 'default';
     let studyGroup = getGroupFromState(state);
     const savedGroup = getStudyGroupFromLocalStorage();
@@ -45,7 +41,8 @@ const Schedule = () => {
                 if (diff.length) {
                     info({
                         title: 'Изменения в расписании',
-                        content: <div>
+                        okButtonProps: {type: 'default'},
+                        content: <div style={{maxHeight: 100, overflowY: 'auto'}}>
                             <ul>{diff.map((d, i) =>
                                 <li key={i}>Неделя {d.week}, {DayName[d.day]}</li>
                             )}</ul>
@@ -60,8 +57,13 @@ const Schedule = () => {
                 scheduleState = 'localOffline';
             }
         }
-    } else if (loading) {
-        scheduleState = 'loading';
+    } else {
+        if (loading) {
+            scheduleState = 'loading';
+        } else if (url && studyGroup) {
+            scheduleState = 'upToDate';
+            saveStudyGroupToLocalStorage(studyGroup);
+        }
     }
 
     const stateToElement = {
@@ -70,7 +72,11 @@ const Schedule = () => {
             <div>
                 Offline view
             </div>
-            <span style={{fontSize: '.8rem'}}>{cache && getLastUpdateTimeString(cache.lastUpdateTime)}</span>
+            <span
+                style={{fontSize: '.8rem', color: 'gray', fontWeight: 400, fontStyle: 'italic'}}
+            >
+                {cache && getLastUpdateTimeString(cache.lastUpdateTime)}
+            </span>
         </>,
         localOffline: <>Offline view</>,
         upToDate: <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>,
@@ -88,9 +94,16 @@ const Schedule = () => {
     }
 
     return (
-        <div className={styles.schedule}>
+        <div>
+            {contextHolder}
+
             {(data || scheduleState === 'checking') && <StudyGroupSelect />}
-            <h4 style={{margin: '20px 0 10px 0'}}>{stateToElement[scheduleState]}</h4>
+            {scheduleState === 'loading' ?
+                <center><Spinner style={{marginTop: 30, width: 30, height: 30}} /></center>
+                :
+                <h4 style={{margin: '20px 0 10px 0'}}>{stateToElement[scheduleState]}</h4>
+            }
+            {/*<center><Spinner style={{width: 30, height: 30}} /></center>*/}
 
             {studyGroup &&
                 <div>

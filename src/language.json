@@ -1,4 +1,8 @@
 {
+  "title": "Rasp Explorer",
+  "githubUrl": "https://github.com/lezko",
+  "repoUrl": "https://github.com/lezko/rasp-explorer",
+  "email": "timulezko02@gmail.com",
   "ru": {
     "fileSelect": {
       "local": "Локальный файл",

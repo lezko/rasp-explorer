@@ -73,7 +73,6 @@ export function setScheduleParamsToUrl(params: ScheduleParams) {
 
 export function getLastUpdateTimeString(time: number) {
     const t = Date.now() - time;
-    console.log(t);
     const msInMinute = 1000 * 60;
     const msInHour = msInMinute * 60;
     const msInDay = msInHour * 24;
@@ -90,7 +89,7 @@ export function getLastUpdateTimeString(time: number) {
 
     const m = Math.floor(t / msInMinute);
     if (m > 0) {
-        return `Сохранено ${m}м назад`;
+        return `Сохранено ${m}мин назад`;
     }
 
     return `Сохранено менее минуты назад`;

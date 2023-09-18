@@ -90,7 +90,7 @@ function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
     }
 
 
-    console.log(groups);
+    // console.log(groups);
     // console.log(table);
     return groups;
 }
