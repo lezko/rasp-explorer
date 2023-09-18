@@ -32,6 +32,7 @@ const Schedule = () => {
     const savedGroup = getStudyGroupFromLocalStorage();
 
     if (savedGroup && savedGroup.year === year && savedGroup.groupNumber === groupNumber && savedGroup.subgroupNumber === subgroupNumber) {
+
         if (loading || error) {
             scheduleState = error ? 'offline' : 'checking';
             studyGroup = savedGroup;

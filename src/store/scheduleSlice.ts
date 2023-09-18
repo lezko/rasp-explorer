@@ -88,18 +88,33 @@ export const scheduleSlice = createSlice({
             }
         },
         // todo extract to middleware
-        setParams(state, action: PayloadAction<Partial<ScheduleParams>>) {
-            const params = {...state.params, ...action.payload};
-            saveScheduleParamsToLocalStorage(params);
+        setParams(state, action: PayloadAction<ScheduleParams>) {
+            // const params = {...state.params, ...action.payload};
+            // fixme
+            if (action.payload.url) {
+                state.params.url = action.payload.url;
+            }
+            if (action.payload.year) {
+                state.params.year = action.payload.year;
+            }
+            if (action.payload.groupNumber) {
+                state.params.groupNumber = action.payload.groupNumber;
+            }
+            if (action.payload.subgroupNumber) {
+                state.params.subgroupNumber = action.payload.subgroupNumber;
+            }
+            if (action.payload.sheetIndex !== undefined) {
+                state.params.sheetIndex = action.payload.sheetIndex;
+            }
+
+            saveScheduleParamsToLocalStorage(state.params);
 
             // fixme absolute cringe
             const groups = state.data && (state.params.sheetIndex !== undefined ) ? Object.values(state.data)[state.params.sheetIndex] : [];
-            const group = findStudyGroup(groups, params.year, params.groupNumber, params.subgroupNumber);
+            const group = findStudyGroup(groups, state.params.year, state.params.groupNumber, state.params.subgroupNumber);
             if (group) {
                 saveStudyGroupToLocalStorage(group);
             }
-
-            state.params = params;
         },
         resetState(state) {
             state.data = null;
