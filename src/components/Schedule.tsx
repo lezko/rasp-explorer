@@ -1,5 +1,5 @@
 import {IStudyGroup} from 'core/IStudyGroup';
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import Week from 'components/Week';
 import {getCurrentWeekNumber} from 'core/ScheduleParser';
 import {
@@ -12,11 +12,15 @@ import {getGroupFromState, ScheduleParams, setParams, useSchedule} from 'store/s
 import StudyGroupSelect from 'components/StudyGroupSelect';
 import Spinner from 'components/Spinner';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCircleCheck} from '@fortawesome/free-solid-svg-icons';
+import {faCircleCheck, faAngleUp, faAngleDown} from '@fortawesome/free-solid-svg-icons';
 import {Modal, Select} from 'antd';
 import {DayName} from 'core/ISchedule';
 import {getCacheFromLocalStorage, saveCacheToLocalStorage} from 'utils/cacheStorage';
 import {useAppDispatch} from 'store';
+import language from 'language.json';
+import {setSettings, useSettings} from 'store/settingsSlice';
+
+const lang = language.ru;
 
 const Schedule = () => {
     const state = useSchedule();
@@ -26,12 +30,15 @@ const Schedule = () => {
     const {sheetIndex, year, groupNumber, subgroupNumber, url} = params;
     const currentWeekNumber = getCurrentWeekNumber();
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
+    const {showSpecialization} = useSettings();
     // const [scheduleState, setScheduleState] = useState<'offline' | 'checking' | 'upToDate' | 'default'>('default');
 
     const [{info}, contextHolder] = Modal.useModal();
     let scheduleState: 'default' | 'offline' | 'localOffline' | 'checking' | 'loading' | 'upToDate' = 'default';
     let studyGroup = getGroupFromState(state);
     const savedGroup = getStudyGroupFromLocalStorage();
+
+    const [studyGroupDiff, setStudyGroupDiff] = useState<ReturnType<typeof getStudyGroupDifference> | null>(null);
 
     if (savedGroup && savedGroup.year === year && savedGroup.groupNumber === groupNumber && savedGroup.subgroupNumber === subgroupNumber) {
 
@@ -42,15 +49,7 @@ const Schedule = () => {
             if (studyGroup && url) {
                 const diff = getStudyGroupDifference(studyGroup, savedGroup);
                 if (diff.length) {
-                    info({
-                        title: 'Изменения в расписании',
-                        okButtonProps: {type: 'default'},
-                        content: <div style={{maxHeight: 100, overflowY: 'auto'}}>
-                            <ul>{diff.map((d, i) =>
-                                <li key={i}>Неделя {d.week}, {DayName[d.day]}</li>
-                            )}</ul>
-                        </div>
-                    });
+                    setStudyGroupDiff(diff);
                 }
                 saveStudyGroupToLocalStorage(studyGroup);
                 scheduleState = 'upToDate';
@@ -111,6 +110,21 @@ const Schedule = () => {
         dispatch(setParams(nextParams));
     }
 
+    useEffect(() => {
+        if (studyGroupDiff) {
+            info({
+                title: 'Изменения в расписании',
+                okButtonProps: {type: 'default'},
+                content: <div style={{maxHeight: 100, overflowY: 'auto'}}>
+                    <ul>{studyGroupDiff.map((d, i) =>
+                        <li key={i}>{d.week === 1 ? lang.week.long['1'] : lang.week.long['2']}, {DayName[d.day]}</li>
+                    )}</ul>
+                </div>
+            });
+            setStudyGroupDiff(null);
+        }
+    }, [studyGroupDiff]);
+
     return (
         <div>
             {contextHolder}
@@ -136,15 +150,22 @@ const Schedule = () => {
 
             {studyGroup &&
                 <div>
-                    {getGroupInfoHtml(studyGroup)}
+                    <div
+                        style={{display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '.9rem', marginTop: 10, fontStyle: 'italic'}}
+                        onClick={() => dispatch(setSettings({showSpecialization: !showSpecialization}))}
+                    >
+                        <span>{showSpecialization ? lang.hideSpecialization : lang.showSpecialization}</span>
+                        <FontAwesomeIcon style={{marginLeft: 5}} icon={showSpecialization ? faAngleUp : faAngleDown} />
+                    </div>
+                    {showSpecialization && getGroupInfoHtml(studyGroup)}
 
                     <div>
                         <span>Неделя:</span>
                         <Select
-                            style={{width: 120, marginLeft: 5, marginBlock: 10}}
+                            style={{width: 160, marginLeft: 5, marginBlock: 10}}
                             options={[
-                                {value: 1, label: '1 ' + (currentWeekNumber === 1 ? '(текущая)' : '')},
-                                {value: 2, label: '2 ' + (currentWeekNumber === 2 ? '(текущая)' : '')}
+                                {value: 1, label: lang.week.short['1'] + (currentWeekNumber === 1 ? ' (текущая)' : '')},
+                                {value: 2, label: lang.week.short['2'] + (currentWeekNumber === 2 ? ' (текущая)' : '')}
                             ]}
                             value={weekNumber}
                             onChange={value => setWeekNumber(+value)}

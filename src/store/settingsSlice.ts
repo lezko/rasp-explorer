@@ -8,6 +8,7 @@ export enum Theme {
 
 export interface SettingsState {
     theme: Theme;
+    showSpecialization: boolean;
 }
 
 function getSettingsFromLocalStorage(): SettingsState | null {
@@ -22,21 +23,26 @@ function saveSettingsToLocalStorage(settings: SettingsState) {
     localStorage.setItem('settings', JSON.stringify(settings));
 }
 
+const initialSettings = {
+    theme: Theme.Light,
+    showSpecialization: true,
+};
 let initialState = getSettingsFromLocalStorage();
 if (!initialState) {
-    initialState = {
-        theme: Theme.Light,
-    }
-    saveSettingsToLocalStorage(initialState);
+    initialState = initialSettings;
+} else {
+    initialState = {...initialSettings, ...initialState};
 }
+saveSettingsToLocalStorage(initialState);
 
 export const settingsSlice = createSlice({
     name: 'settings',
     initialState,
     reducers: {
-        setSettings(state, action: PayloadAction<SettingsState>) {
-            saveSettingsToLocalStorage(action.payload);
-            return action.payload;
+        setSettings(state, action: PayloadAction<Partial<SettingsState>>) {
+            const settings = {...state, ...action.payload};
+            saveSettingsToLocalStorage(settings);
+            return settings;
         },
     }
 });
