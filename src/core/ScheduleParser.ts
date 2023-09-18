@@ -50,7 +50,7 @@ function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
             group.year = extractNumberFromStr(table[yearIdx][col]);
             group.groupNumber = extractNumberFromStr(table[groupIdx][col]);
         } catch (e: any) {
-            console.error(`Failed to proceed group with year ${table[yearIdx][col]} and group number ${table[groupIdx][col]}`);
+            console.error(`Failed to process group with year ${table[yearIdx][col]} and group number ${table[groupIdx][col]}`);
             continue;
         }
         group.specialization = table[specializationIdx][col];
@@ -90,7 +90,7 @@ function parseSheet(sheet: XLSX.Sheet): IStudyGroup[] {
     }
 
 
-    console.log(groups);
+    // console.log(groups);
     // console.log(table);
     return groups;
 }

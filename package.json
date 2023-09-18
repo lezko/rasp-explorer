@@ -8,13 +8,15 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "@types/antd": "^1.0.0",
+    "@types/deep-equal": "^1.0.1",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.46",
-    "@types/react": "^18.2.21",
-    "@types/react-dom": "^18.2.7",
     "@types/react-redux": "^7.1.26",
     "@types/styled-components": "^5.1.27",
     "@types/xlsx": "^0.0.36",
+    "antd": "^5.9.1",
+    "deep-equal": "^2.2.2",
     "eslint": "8.22.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -48,6 +50,12 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@fortawesome/fontawesome-svg-core": "^6.4.2",
+    "@fortawesome/free-brands-svg-icons": "^6.4.2",
+    "@fortawesome/free-solid-svg-icons": "^6.4.2",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
     "gh-pages": "^6.0.0"
   }
 }
