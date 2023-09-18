@@ -29,22 +29,34 @@ const initialState: ScheduleState = {
     params: getScheduleParamsFromLocalStorage() || {}
 };
 
-export function parseScheduleParams(url: string): ScheduleParams {
-    const params = new URLSearchParams(url);
+export function parseScheduleParams(urlString: string): ScheduleParams {
+    const params = new URLSearchParams(urlString);
     const result: ScheduleParams = {};
-    result.url = params.get('url') || undefined;
+
+    const url = params.get('url');
+    if (url) {
+        result.url = url
+    }
 
     const sheetIndex = params.get('sheetIndex');
-    result.sheetIndex = sheetIndex ? +sheetIndex : undefined;
+    if (sheetIndex !== undefined && sheetIndex !== null) {
+        result.sheetIndex = +sheetIndex;
+    }
 
     const year = params.get('year');
-    result.year = year ? +year : undefined;
+    if (year) {
+        result.year = +year;
+    }
 
     const groupNumber = params.get('groupNumber');
-    result.groupNumber = groupNumber ? +groupNumber : undefined;
+    if (groupNumber) {
+        result.groupNumber = +groupNumber;
+    }
 
     const subgroupNumber = params.get('subgroupNumber');
-    result.subgroupNumber = subgroupNumber ? +subgroupNumber : undefined;
+    if (subgroupNumber) {
+        result.subgroupNumber = +subgroupNumber;
+    }
 
     return result;
 }
@@ -89,24 +101,7 @@ export const scheduleSlice = createSlice({
         },
         // todo extract to middleware
         setParams(state, action: PayloadAction<ScheduleParams>) {
-            // const params = {...state.params, ...action.payload};
-            // fixme
-            if (action.payload.url) {
-                state.params.url = action.payload.url;
-            }
-            if (action.payload.year) {
-                state.params.year = action.payload.year;
-            }
-            if (action.payload.groupNumber) {
-                state.params.groupNumber = action.payload.groupNumber;
-            }
-            if (action.payload.subgroupNumber) {
-                state.params.subgroupNumber = action.payload.subgroupNumber;
-            }
-            if (action.payload.sheetIndex !== undefined) {
-                state.params.sheetIndex = action.payload.sheetIndex;
-            }
-
+            state.params = {...state.params, ...action.payload};
             saveScheduleParamsToLocalStorage(state.params);
 
             // fixme absolute cringe
