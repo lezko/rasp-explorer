@@ -8,17 +8,19 @@ import {
     getStudyGroupFromLocalStorage,
     saveStudyGroupToLocalStorage
 } from 'utils/scheduleUtils';
-import {getGroupFromState, useSchedule} from 'store/scheduleSlice';
+import {getGroupFromState, ScheduleParams, setParams, useSchedule} from 'store/scheduleSlice';
 import StudyGroupSelect from 'components/StudyGroupSelect';
 import Spinner from 'components/Spinner';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCircleCheck} from '@fortawesome/free-solid-svg-icons';
 import {Modal, Select} from 'antd';
 import {DayName} from 'core/ISchedule';
-import {getCacheFromLocalStorage} from 'utils/cacheStorage';
+import {getCacheFromLocalStorage, saveCacheToLocalStorage} from 'utils/cacheStorage';
+import {useAppDispatch} from 'store';
 
 const Schedule = () => {
     const state = useSchedule();
+    const dispatch = useAppDispatch();
     const cache = getCacheFromLocalStorage();
     const {data, loading, error, params} = state;
     const {sheetIndex, year, groupNumber, subgroupNumber, url} = params;
@@ -26,7 +28,7 @@ const Schedule = () => {
     const [weekNumber, setWeekNumber] = useState(currentWeekNumber); // todo restrict values to just two of them
     // const [scheduleState, setScheduleState] = useState<'offline' | 'checking' | 'upToDate' | 'default'>('default');
 
-    const [{info}, contextHolder] = Modal.useModal()
+    const [{info}, contextHolder] = Modal.useModal();
     let scheduleState: 'default' | 'offline' | 'localOffline' | 'checking' | 'loading' | 'upToDate' = 'default';
     let studyGroup = getGroupFromState(state);
     const savedGroup = getStudyGroupFromLocalStorage();
@@ -51,7 +53,7 @@ const Schedule = () => {
                     });
                 }
                 saveStudyGroupToLocalStorage(studyGroup);
-                scheduleState = 'upToDate'
+                scheduleState = 'upToDate';
             } else {
                 // from local file
                 studyGroup = savedGroup;
@@ -83,7 +85,7 @@ const Schedule = () => {
         upToDate: <>Up to date <FontAwesomeIcon icon={faCircleCheck} /></>,
         checking: <>Checking for updates <Spinner /></>,
         loading: <>Loading <Spinner /></>
-    }
+    };
 
     function getGroupInfoHtml(group: IStudyGroup) {
         return (
@@ -94,17 +96,43 @@ const Schedule = () => {
         );
     }
 
+    const sheetNames = data ? Object.keys(data) : [];
+
+    function handleSelectedScheduleChange(sheetIndex: number) {
+        const nextParams = {
+            sheetIndex
+        } as ScheduleParams;
+        if (sheetIndex !== params.sheetIndex) {
+            nextParams.year = undefined;
+            nextParams.groupNumber = undefined;
+            nextParams.subgroupNumber = undefined;
+        }
+        saveCacheToLocalStorage({sheetName: sheetNames[sheetIndex]});
+        dispatch(setParams(nextParams));
+    }
+
     return (
         <div>
             {contextHolder}
 
-            {(data || scheduleState === 'checking') && <StudyGroupSelect />}
+            {(data || studyGroup || scheduleState === 'checking') &&
+                <Select
+                    disabled={!data}
+                    style={{marginBottom: 10, width: 250}}
+                    onChange={handleSelectedScheduleChange}
+                    value={params.sheetIndex}
+                    options={data ? sheetNames.map((s, i) => ({
+                        value: i, label: s
+                    })) : [{value: sheetIndex, label: cache?.sheetName}]}
+                />
+            }
+
+            {(data || studyGroup || scheduleState === 'checking') && <StudyGroupSelect />}
             {scheduleState === 'loading' ?
                 <center><Spinner style={{marginTop: 30, width: 30, height: 30}} /></center>
                 :
                 <h4 style={{margin: '20px 0 10px 0'}}>{stateToElement[scheduleState]}</h4>
             }
-            {/*<center><Spinner style={{width: 30, height: 30}} /></center>*/}
 
             {studyGroup &&
                 <div>

@@ -124,10 +124,10 @@ export const scheduleSlice = createSlice({
     extraReducers: {
         [fetchSpreadSheet.fulfilled.type]: (state, action: PayloadAction<ParsingResult>) => {
             state.data = action.payload;
-            if (Object.keys(action.payload).length) {
-                state.params.sheetIndex = 0;
-                saveScheduleParamsToLocalStorage(state.params);
-            }
+            // if (Object.keys(action.payload).length) {
+            //     state.params.sheetIndex = 0;
+            //     saveScheduleParamsToLocalStorage(state.params);
+            // }
             state.loading = false;
             state.error = '';
         },

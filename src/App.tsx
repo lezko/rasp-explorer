@@ -28,7 +28,7 @@ const lang = language.ru;
 interface ITheme {
     color: string;
     bgColor: string;
-    borderColor: string
+    borderColor: string;
     hoverColor: string;
     bgHoverColor: string;
     bgActiveColor: string;
@@ -77,29 +77,41 @@ function App() {
     const {error, loading, data} = useSchedule();
     const cache = getCacheFromLocalStorage();
     const {theme} = useSettings();
-    const [{error: modalError}, contextHolder] = Modal.useModal()
+    const [{error: modalError}, contextHolder] = Modal.useModal();
 
     useEffect(() => {
         const searchString = window.location.search;
         let url = params.url;
+        let sheetIndex = params.sheetIndex;
         if (searchString) {
             const urlParams = parseScheduleParams(searchString);
+            if (urlParams.sheetIndex !== undefined) {
+                sheetIndex = urlParams.sheetIndex;
+            }
             if (urlParams.url) {
                 url = urlParams.url;
             }
             if (
-                (urlParams.url && urlParams.url !== params.url) || (urlParams.sheetIndex && urlParams.sheetIndex !== params.sheetIndex)
+                (urlParams.url !== params.url) || (urlParams.sheetIndex !== params.sheetIndex)
             ) {
+                dispatch(resetState())
                 removeStudyGroupFromLocalStorage();
             }
             dispatch(setParams(urlParams));
         }
         if (url) {
             dispatch(fetchSpreadSheet(url)).unwrap()
-                .then(() => {
-                    saveCacheToLocalStorage({lastUpdateTime: Date.now()});
+                .then(data => {
+                    if (sheetIndex === undefined) {
+                        sheetIndex = 0;
+                        dispatch(setParams({sheetIndex}));
+                    }
+                    saveCacheToLocalStorage({lastUpdateTime: Date.now(), sheetName: Object.keys(data)[sheetIndex]});
                 })
                 .catch(message => {
+                    if (!window.navigator.onLine) {
+                        return;
+                    }
                     modalError({
                         closable: true,
                         title: lang.error,
@@ -107,33 +119,19 @@ function App() {
                             {message}
                         </div>,
                         okButtonProps: {type: 'default'}
-                    })
+                    });
                 });
         } else {
             dispatch(resetState());
         }
     }, []);
 
-    const sheetNames = data ? Object.keys(data) : [];
-
-    function handleSelectedScheduleChange(sheetIndex: number) {
-        const nextParams = {
-            sheetIndex
-        } as ScheduleParams;
-        if (sheetIndex !== params.sheetIndex) {
-            nextParams.year = undefined;
-            nextParams.groupNumber = undefined;
-            nextParams.subgroupNumber = undefined;
-        }
-        dispatch(setParams(nextParams));
-    }
-
     const [shareBtnText, setShareBtnText] = useState(lang.share);
 
     function handleShare() {
         navigator.clipboard.writeText(window.location.origin + window.location.pathname + scheduleParamsToUrl(params));
         setShareBtnText(lang.linkCopied);
-        setTimeout(() => setShareBtnText(lang.share), 5000);
+        setTimeout(() => setShareBtnText(lang.share), 1500);
     }
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -172,7 +170,7 @@ function App() {
                         }} />
 
                         <div className="container">
-                            <div style={{display: 'flex'}}>
+                            <div style={{display: 'flex', marginBottom: 10}}>
                                 {/* fixme bug when switching from local to url */}
                                 {params.url && !loading &&
                                     <Button
@@ -187,21 +185,10 @@ function App() {
                                     <div>
                                         <Button onClick={() => setModalOpen(true)}>{lang.changeFile}</Button>
                                     </div>
-                                    : (!loading && <Button onClick={() => setModalOpen(true)}>{lang.chooseFile}</Button>)
+                                    : (!loading &&
+                                        <Button onClick={() => setModalOpen(true)}>{lang.chooseFile}</Button>)
                                 }
                             </div>
-
-                            {data &&
-                                <Select
-                                    disabled={Object.keys(data).length === 0}
-                                    style={{marginBlock: 10, width: 250}}
-                                    onChange={handleSelectedScheduleChange}
-                                    value={params.sheetIndex}
-                                    options={sheetNames.map((s, i) => ({
-                                        value: i, label: s
-                                    }))}
-                                />
-                            }
 
                             <Schedule />
                         </div>

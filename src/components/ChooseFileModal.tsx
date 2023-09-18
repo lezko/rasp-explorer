@@ -114,9 +114,13 @@ const ChooseFileModal: FC<ChooseFileModalProps> = ({open, setOpen, onDataLoaded}
                 url = getSpreadSheetUrl(urlString);
                 setFromGssID(false);
             }
+            if (url !== params.url) {
+                dispatch(resetState());
+            }
             dispatch(fetchSpreadSheet(url)).unwrap()
                 .then((data) => {
                     // fixme sync with state
+                    dispatch(setParams({sheetIndex: 0}));
                     saveCacheToLocalStorage({lastUpdateTime: Date.now(), sheetName: Object.keys(data)[0]});
                     onDataLoaded(url);
                     setOpen(false);
