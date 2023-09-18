@@ -53,6 +53,8 @@ function App() {
     return (
         <div className="app">
             <div className="container">
+                <h3 style={{marginBlock: 10}}>Доступна новая <a target="_blank" href="https://lezko-rasp-explorer--pr1-dev-cg2dkk72.web.app/?url=https://docs.google.com/feeds/download/spreadsheets/Export?key=1bKinOo7qlOW2zSFKqofkCZ9ufpCAesO964AUIHH7JEM&sheetIndex=0&">тестовая версия</a></h3>
+
                 <FileSelect onFileLoaded={schedules => {
                     dispatch(setSchedule(schedules));
                     dispatch(setScheduleParams({sheetName: Object.keys(schedules)[0]}));
