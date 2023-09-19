@@ -155,7 +155,6 @@ function App() {
                     Select: {
                         controlItemBgHover: currentTheme.bgHoverColor,
                         controlItemBgActive: currentTheme.bgActiveColor,
-
                     }
                 }
             }}>
