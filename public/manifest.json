@@ -3,17 +3,22 @@
   "name": "Rasp Explorer",
   "icons": [
     {
-      "src": "/img/icon-24.png",
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "img/icon-24.png",
       "type": "image/png",
       "sizes": "24x24"
     },
     {
-      "src": "/img/icon-48.png",
+      "src": "img/icon-48.png",
       "type": "image/png",
       "sizes": "48x48"
     },
     {
-      "src": "/img/icon-96.png",
+      "src": "img/icon-96.png",
       "type": "image/png",
       "sizes": "96x96"
     },
@@ -22,5 +27,9 @@
       "type": "image/png",
       "sizes": "192x192"
     }
-  ]
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
 }
