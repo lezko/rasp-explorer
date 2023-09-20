@@ -5,6 +5,7 @@ import App from 'App';
 import {Provider} from 'react-redux';
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
@@ -31,3 +32,5 @@ root.render(
         </Provider>
     //</StrictMode>
 );
+
+serviceWorkerRegistration.register();

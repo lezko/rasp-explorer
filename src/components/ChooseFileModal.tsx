@@ -57,8 +57,6 @@ const StyledError = styled.span`
 
 const StyledBody = styled.div`
   padding-top: 20px;
-  //display: flex;
-  //justify-content: center;
 `;
 
 const ChooseFileModal: FC<ChooseFileModalProps> = ({open, setOpen, onDataLoaded}) => {
@@ -143,7 +141,12 @@ const ChooseFileModal: FC<ChooseFileModalProps> = ({open, setOpen, onDataLoaded}
             }}
             onOk={handleSubmit}
             closable
-            onCancel={() => setOpen(false)}
+            onCancel={() => {
+                if (params.url) {
+                    setUrlString(params.url);
+                }
+                setOpen(false);
+            }}
         >
             <div style={{marginTop: 20}}>
                 <StyledTabPanel>
